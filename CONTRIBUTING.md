@@ -15,6 +15,8 @@ npm test
 
 Requirements: Node.js >= 18.17.
 
+> **Dependency note:** `playwright` is deliberately pinned to `~1.49.1` — it is the last Playwright line that supports Node 18 (newer releases require Node >= 20 and break the Node 18 CI job at import time). Only raise this pin together with raising the `engines` floor, the CI matrix, and the README badge.
+
 ## Project layout
 
 | Path | Responsibility |
