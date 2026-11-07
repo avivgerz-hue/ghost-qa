@@ -1,0 +1,76 @@
+{
+  "$schema": "https://glama.ai/mcp/schemas/server.json",
+  "maintainers": [
+    "avivgerz-hue"
+  ],
+  "name": "ghost-qa",
+  "displayName": "ghost-qa — Autonomous Browser QA for Coding Agents",
+  "description": "Autonomous headless browser QA & self-healing verification loop for AI coding agents (Claude Code, Codex, Cursor, Windsurf). Crawls a running localhost app on Desktop 1440x900 and Mobile 390x844, safely exercises interactive controls, and traps console/hydration errors, failed network requests, layout overflow, accessibility defects and performance problems — returning a structured Self-Healing Bug Report the agent fixes before reporting done.",
+  "homepage": "https://github.com/avivgerz-hue/ghost-qa",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/avivgerz-hue/ghost-qa"
+  },
+  "categories": [
+    "testing",
+    "browser-automation",
+    "developer-tools"
+  ],
+  "tags": [
+    "mcp",
+    "playwright",
+    "headless-browser",
+    "qa-automation",
+    "e2e-testing",
+    "claude-code",
+    "agent-skills",
+    "accessibility-testing",
+    "self-healing"
+  ],
+  "tools": [
+    {
+      "name": "ghost_qa_audit_url",
+      "description": "Run the full ghost-qa headless browser audit against a running localhost app: crawls internal routes on Desktop 1440x900 and Mobile 390x844, safely exercises interactive controls, and traps console/hydration errors, failed network requests, layout overflow, accessibility bugs and performance problems. Returns the Self-Healing Bug Report — fix every critical/major issue it reports before declaring the task done.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "Target URL of the running app, e.g. http://localhost:3000"
+          },
+          "maxDepth": {
+            "type": "number",
+            "description": "Link-following depth (default 2)"
+          },
+          "maxRoutes": {
+            "type": "number",
+            "description": "Maximum routes to visit (default 25)"
+          },
+          "viewport": {
+            "type": "string",
+            "enum": [
+              "both",
+              "desktop",
+              "mobile"
+            ],
+            "description": "Viewports to test (default both)"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "ghost_qa_doctor",
+      "description": "Verify ghost-qa environment readiness: Node.js version, Chromium binary availability, and a live headless-browser smoke test. Run this first when an audit fails to start.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      }
+    }
+  ]
+}

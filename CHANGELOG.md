@@ -2,7 +2,13 @@
 
 All notable changes to ghost-qa are documented here. Format follows [Keep a Changelog](https://keepachangelog.com), versions follow [SemVer](https://semver.org).
 
-## [Unreleased]
+## [1.3.0] — 2026-11-07
+
+### Added
+- **MCP registry auto-indexing manifests**: `smithery.yaml` (Smithery stdio config), `glama.json` (Glama metadata, maintainer and tool definitions), and `server.json` (official Model Context Protocol Registry format) — all describing the same `ghost_qa_audit_url` / `ghost_qa_doctor` tools the server actually exposes, guarded by drift tests.
+- **`CITATION.cff`** (Citation File Format 1.2.0) so GitHub shows the "Cite this repository" widget for academic/grant citation.
+- **Committed `dist/`** for instant zero-build execution: `npx github:avivgerz-hue/ghost-qa` now runs immediately without a TypeScript toolchain on the user's machine. `prepare` is handled by `scripts/prepare-build.mjs`, which no-ops safely when `dist/` exists or TypeScript is absent, and only builds when compiling from source.
+- Expanded npm `keywords` to 34 high-intent discovery terms (MCP, agent skills, Playwright, accessibility testing, self-healing…).
 
 ### Fixed
 - **CLI silently no-opped under `npx`.** The entry-point guard compared `process.argv[1]` (a `node_modules/.bin/ghost-qa` symlink under package managers) against the realpath-resolved `import.meta.url`, so the CLI exited 0 with no output when invoked via a bin symlink. The entry check now realpath-resolves first, with a regression test (`tests/cli-entry.test.ts`).

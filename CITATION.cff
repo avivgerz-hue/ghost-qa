@@ -1,0 +1,33 @@
+cff-version: 1.2.0
+message: "If you use this software in your research or tooling, please cite it as below."
+title: "ghost-qa: Autonomous Headless Browser QA & Self-Healing Verification Loop for AI Coding Agents"
+abstract: >-
+  ghost-qa is an autonomous headless browser verification CLI and installable
+  AI agent skill. It crawls a running web application on desktop and mobile
+  viewports, safely exercises interactive controls, and traps runtime
+  failures (console and hydration errors, network failures, layout overflow,
+  accessibility defects, and performance problems), returning a structured
+  self-healing diagnostic that coding agents (Claude Code, OpenAI Codex,
+  Cursor, Windsurf) use to fix their own defects before reporting task
+  completion. It is available both as a CLI (npx ghost-qa) and as a native
+  Model Context Protocol (MCP) server.
+authors:
+  - name: "VibeFoundry"
+version: 1.3.0
+license: MIT
+repository-code: "https://github.com/avivgerz-hue/ghost-qa"
+url: "https://github.com/avivgerz-hue/ghost-qa"
+date-released: 2026-11-07
+keywords:
+  - ai-agents
+  - coding-agents
+  - model-context-protocol
+  - mcp-server
+  - playwright
+  - headless-browser
+  - qa-automation
+  - e2e-testing
+  - self-healing
+  - claude-code
+  - agent-skills
+  - accessibility-testing

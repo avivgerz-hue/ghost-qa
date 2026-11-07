@@ -1,0 +1,23 @@
+# Smithery configuration for ghost-qa
+# Docs: https://smithery.ai/docs/build/publish
+#
+# ghost-qa ships a committed dist/, so this stdio server starts instantly
+# with no build step: `node dist/bin/ghost-qa.js mcp`
+
+description: >-
+  Autonomous headless browser QA & self-healing verification loop for AI
+  coding agents. Crawls a running localhost app on desktop + mobile, traps
+  console/hydration, network, layout, accessibility and performance
+  failures, and returns a structured bug report the agent can fix from.
+
+startCommand:
+  type: stdio
+  configSchema:
+    $schema: http://json-schema.org/draft-07/schema#
+    type: object
+    description: ghost-qa requires no configuration. Tools take per-call arguments.
+    properties: {}
+    required: []
+  commandFunction: |-
+    (config) => ({ command: "node", args: ["dist/bin/ghost-qa.js", "mcp"] })
+  exampleConfig: {}
