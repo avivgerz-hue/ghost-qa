@@ -2,6 +2,12 @@
 
 All notable changes to ghost-qa are documented here. Format follows [Keep a Changelog](https://keepachangelog.com), versions follow [SemVer](https://semver.org).
 
+## [Unreleased]
+
+### Fixed
+- **CLI silently no-opped under `npx`.** The entry-point guard compared `process.argv[1]` (a `node_modules/.bin/ghost-qa` symlink under package managers) against the realpath-resolved `import.meta.url`, so the CLI exited 0 with no output when invoked via a bin symlink. The entry check now realpath-resolves first, with a regression test (`tests/cli-entry.test.ts`).
+- Added `"prepare": "npm run build"` so `npx github:avivgerz-hue/ghost-qa` and git-URL installs build `dist/` automatically.
+
 ## [1.2.0] — 2026-11-07
 
 ### Changed

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { existsSync } from 'node:fs';
+import { existsSync, realpathSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -397,9 +397,26 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
   }
 }
 
-const invokedAsScript =
-  process.argv[1] !== undefined && import.meta.url === pathToFileURL(resolve(process.argv[1])).href;
-if (invokedAsScript) {
+/**
+ * True when this module is the process entry point. The entry path MUST be
+ * realpath-resolved first: package managers invoke bins through a
+ * `node_modules/.bin/ghost-qa` symlink, while `import.meta.url` always
+ * points at the real file — comparing unresolved paths would make the CLI
+ * silently no-op (exit 0, no output) under `npx`.
+ */
+export function isMainEntry(
+  argvEntry: string | undefined,
+  moduleUrl: string = import.meta.url,
+): boolean {
+  if (!argvEntry) return false;
+  try {
+    return moduleUrl === pathToFileURL(realpathSync(resolve(argvEntry))).href;
+  } catch {
+    return false;
+  }
+}
+
+if (isMainEntry(process.argv[1])) {
   main().then(
     (code) => {
       process.exitCode = code;
