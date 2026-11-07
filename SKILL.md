@@ -16,15 +16,20 @@ Unit tests, type-checking and code review do **not** satisfy this rule.
 
 ## The Self-Healing Loop
 
-1. **Run the app.** Start (or reuse) the project's dev server, e.g. `npm run dev`, and note the local URL.
+1. **Run the app.** Start (or reuse) the project's dev server, e.g. `npm run dev` — or skip this step entirely with `--server-cmd` (below) and let ghost-qa spawn and tear down the server itself.
 2. **Verify.** Run:
    ```bash
    npx ghost-qa test http://localhost:3000
+   # or, with zero manual server management:
+   npx ghost-qa test http://localhost:3000 --server-cmd "npm run dev"
    ```
-   ghost-qa crawls internal routes (depth 2, up to 25 routes) on Desktop 1440×900 and Mobile 390×844, safely clicks non-destructive controls, fills forms with inert data, and traps:
-   - uncaught page errors, unhandled promise rejections, React hydration mismatches, `console.error`
-   - HTTP 4xx/5xx responses, failed fetch/XHR, CORS failures, broken assets
-   - horizontal overflow, zero-size interactive elements, broken images, missing viewport meta
+   If your host exposes MCP tools, calling **`ghost_qa_audit_url`** with the same URL is equivalent (and `ghost_qa_doctor` checks the environment first).
+   ghost-qa crawls internal routes (depth 2, up to 25 routes) on Desktop 1440×900 and Mobile 390×844, safely clicks non-destructive controls, fills forms with inert data, and runs the **5-Trap Engine**:
+   - **Console** — uncaught page errors, unhandled promise rejections, React hydration mismatches, `console.error`
+   - **Network** — HTTP 4xx/5xx responses, failed fetch/XHR, CORS failures, broken assets
+   - **Layout** — horizontal overflow, zero-size interactive elements, broken images, missing viewport meta
+   - **Accessibility** — buttons/links with no accessible name, images missing `alt`, inputs with no label, missing `<title>` / `<html lang>`
+   - **Performance** — slow loads, oversized assets/payloads, main-thread long-task jank, render-blocking resources, excessive DOM
 3. **Read the Self-Healing Bug Report.** Every issue has a stable `#id`, severity, route, viewport and a fix playbook entry.
 4. **Fix root causes in source.** Never silence the checker, delete the failing UI, wrap everything in `try/catch`, or add `suppressHydrationWarning` to make a report go away — fix the bug the report points at.
 5. **Re-run** `npx ghost-qa test <url>` until it prints:
@@ -42,7 +47,13 @@ Unit tests, type-checking and code review do **not** satisfy this rule.
 | `--no-interactions` | A page has side-effectful controls you must not exercise |
 | `--json` | Piping the report into another tool or CI gate |
 | `--report ghost-qa-report.md` | Saving the diagnostic as a file artifact |
+| `--html ghost-qa-report.html` | Visual evidence dashboard to attach to a PR or CI run |
+| `--server-cmd "npm run dev"` | Let ghost-qa spawn, await and tear down the dev server itself |
 | `--fail-on minor` | Strict mode: even warnings block completion |
+
+## MCP mode
+
+`npx ghost-qa mcp` runs a native MCP server (JSON-RPC over stdio) exposing `ghost_qa_audit_url` and `ghost_qa_doctor`. `npx ghost-qa init` installs the `.mcp.json` entry automatically. Prefer the MCP tools when your host supports them; the CLI and MCP paths run the identical audit engine.
 
 ## Safety guarantees
 

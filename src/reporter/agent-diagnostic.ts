@@ -11,6 +11,10 @@ export const FIX_PLAYBOOK: Record<IssueCategory, string> = {
     'Check the failing endpoint/asset: verify the API route exists, returns 2xx, sends CORS headers for the page origin, and that static asset paths match files actually emitted to the public/build output.',
   layout:
     'Inspect the flagged elements: constrain widths (max-width: 100%, min-width: 0 on flex/grid children), avoid 100vw with scrollbars, restore collapsed interactive elements to a visible size, and point <img> at assets that exist.',
+  accessibility:
+    'Give every interactive element an accessible name (visible text or aria-label), add alt text to images (alt="" only when purely decorative), associate every form input with a real <label> or aria-label, and set a per-route <title> plus <html lang>.',
+  performance:
+    'Bring the page inside budget: defer/async non-critical scripts, compress and lazy-load oversized assets, code-split large bundles, break up long main-thread tasks, avoid reading layout properties in loops after DOM writes, and prune excessive DOM nodes.',
   interaction:
     'Reproduce the click/fill manually: check for overlays intercepting pointer events, disabled state that never clears, handlers throwing on click, and elements re-rendering between hover and click.',
   navigation:
@@ -59,7 +63,7 @@ export function formatAgentDiagnostic(report: GhostQAReport): string {
   lines.push('');
 
   if (report.issues.length === 0) {
-    lines.push('No console, network, layout or interaction failures were trapped on desktop (1440×900) or mobile (390×844).');
+    lines.push('No console, network, layout, accessibility, performance or interaction failures were trapped on desktop (1440×900) or mobile (390×844).');
     lines.push('You may report the task complete.');
     return lines.join('\n');
   }

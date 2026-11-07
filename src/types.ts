@@ -8,7 +8,14 @@
 
 export type ViewportName = 'desktop' | 'mobile';
 
-export type IssueCategory = 'console' | 'network' | 'layout' | 'interaction' | 'navigation';
+export type IssueCategory =
+  | 'console'
+  | 'network'
+  | 'layout'
+  | 'accessibility'
+  | 'performance'
+  | 'interaction'
+  | 'navigation';
 
 export type IssueSeverity = 'critical' | 'major' | 'minor';
 
@@ -27,7 +34,18 @@ export type IssueType =
   | 'broken-image'
   | 'missing-viewport-meta'
   | 'interaction-failed'
-  | 'navigation-failed';
+  | 'navigation-failed'
+  | 'missing-accessible-name'
+  | 'img-missing-alt'
+  | 'input-missing-label'
+  | 'missing-document-title'
+  | 'missing-html-lang'
+  | 'slow-page-load'
+  | 'oversized-resource'
+  | 'excessive-payload'
+  | 'render-blocking-resources'
+  | 'layout-thrashing'
+  | 'excessive-dom-size';
 
 export interface QAIssue {
   /** Stable, de-duplication-friendly identifier (hash of the fingerprint). */
@@ -170,6 +188,8 @@ export function summarise(
     console: 0,
     network: 0,
     layout: 0,
+    accessibility: 0,
+    performance: 0,
     interaction: 0,
     navigation: 0,
   };

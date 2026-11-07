@@ -3,30 +3,15 @@ import { existsSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { chromium } from 'playwright';
-import { BrowserSession, smokeTestBrowser } from '../src/engine/browser-session.js';
-import { InteractionRunner } from '../src/engine/interaction-runner.js';
-import { RouteCrawler, pathOf, type DiscoveredRoute } from '../src/engine/route-crawler.js';
+import { runGhostQAAudit, GHOST_QA_VERSION } from '../src/engine/audit-runner.js';
+import { ManagedDevServer } from '../src/engine/server-lifecycle.js';
+import { mcpServerConfig, runDoctorCheck, startMcpServer } from '../src/mcp/server.js';
 import { formatAgentDiagnostic, formatDiagnostic } from '../src/reporter/agent-diagnostic.js';
+import { formatHtmlReport } from '../src/reporter/html-report.js';
 import { formatTerminalSummary } from '../src/reporter/terminal-summary.js';
-import { ConsoleTrap } from '../src/traps/console-trap.js';
-import { LayoutTrap } from '../src/traps/layout-trap.js';
-import { NetworkTrap } from '../src/traps/network-trap.js';
-import {
-  DEFAULT_OPTIONS,
-  dedupeIssues,
-  makeIssue,
-  summarise,
-  type GhostQAOptions,
-  type GhostQAReport,
-  type IssueSeverity,
-  type QAIssue,
-  type RouteRecord,
-  type ViewportName,
-  type InteractionAction,
-} from '../src/types.js';
+import { DEFAULT_OPTIONS, type GhostQAOptions } from '../src/types.js';
 
-export const VERSION = '1.0.0';
+export const VERSION = GHOST_QA_VERSION;
 
 const PROTOCOL_START = '<!-- ghost-qa:start -->';
 const PROTOCOL_END = '<!-- ghost-qa:end -->';
@@ -37,8 +22,8 @@ export const AGENT_PROTOCOL = `${PROTOCOL_START}
 Before reporting any task that touches frontend code as complete, you MUST verify it in a real browser:
 
 1. Ensure the app is running locally (e.g. \`npm run dev\`).
-2. Run: \`npx ghost-qa test <local-url>\` (e.g. \`npx ghost-qa test http://localhost:3000\`)
-3. If ghost-qa reports ANY critical or major issue (hydration errors, console errors, 4xx/5xx responses, mobile overflow, broken interactions), fix the root cause in source and re-run.
+2. Run: \`npx ghost-qa test <local-url>\` (e.g. \`npx ghost-qa test http://localhost:3000\`) — or call the \`ghost_qa_audit_url\` MCP tool if your host exposes it. Add \`--server-cmd "npm run dev"\` to let ghost-qa manage the dev server itself.
+3. If ghost-qa reports ANY critical or major issue (hydration errors, console errors, 4xx/5xx responses, mobile overflow, accessibility or performance failures, broken interactions), fix the root cause in source and re-run.
 4. Repeat until ghost-qa prints **PASS**. Only then may you tell the user the task is done.
 
 Never declare a UI task finished based only on code review, type-checking, or unit tests. The browser is the source of truth.
@@ -64,7 +49,8 @@ const HELP = `
 
 Usage:
   ghost-qa test <url> [options]    Crawl a running app and trap browser failures
-  ghost-qa init [--force]          Install the agent skill + verification protocol
+  ghost-qa init [--force]          Install the agent skill, protocol + MCP config
+  ghost-qa mcp                     Run the native MCP server (JSON-RPC over stdio)
   ghost-qa doctor                  Check Node, Playwright and Chromium setup
   ghost-qa --help | --version
 
@@ -76,15 +62,21 @@ test options:
   --no-interactions      Only load pages; do not click/fill anything
   --headed               Show the browser window (debugging)
   --fail-on <severity>   Fail on critical | major | minor (default ${DEFAULT_OPTIONS.failOn})
+  --server-cmd <cmd>     Spawn this dev-server command first, wait for the URL,
+                         run the audit, then terminate the server tree
+  --server-timeout <ms>  How long to wait for --server-cmd to respond (default 30000)
   --json                 Print the machine-readable JSON report to stdout
   --report <file>        Write the diagnostic to a file (.md or .json by extension)
+  --html <file>          Write the visual HTML evidence dashboard to a file
   --quiet                Suppress the terminal summary (report/exit code only)
 
 Examples:
   npx ghost-qa test http://localhost:3000
-  npx ghost-qa test http://localhost:5173 --max-depth 3 --max-routes 40
+  npx ghost-qa test http://localhost:3000 --server-cmd "npm run dev"
+  npx ghost-qa test http://localhost:5173 --max-depth 3 --html ghost-qa-report.html
   npx ghost-qa test http://localhost:3000 --json > report.json
   npx ghost-qa init
+  npx ghost-qa mcp
 `;
 
 function parsePositiveInt(value: string | undefined, flag: string): number {
@@ -103,12 +95,26 @@ function parseNonNegativeInt(value: string | undefined, flag: string): number {
   return parsed;
 }
 
-function parseTestArgs(args: string[]): { target: string; options: GhostQAOptions; json: boolean; quiet: boolean; reportFile?: string } {
+export interface ParsedTestArgs {
+  target: string;
+  options: GhostQAOptions;
+  json: boolean;
+  quiet: boolean;
+  reportFile?: string;
+  htmlFile?: string;
+  serverCmd?: string;
+  serverTimeoutMs: number;
+}
+
+export function parseTestArgs(args: string[]): ParsedTestArgs {
   const options: GhostQAOptions = { ...DEFAULT_OPTIONS, viewports: [...DEFAULT_OPTIONS.viewports] };
   let target = '';
   let json = false;
   let quiet = false;
   let reportFile: string | undefined;
+  let htmlFile: string | undefined;
+  let serverCmd: string | undefined;
+  let serverTimeoutMs = 30_000;
 
   for (let i = 0; i < args.length; i++) {
     const arg = args[i]!;
@@ -151,6 +157,17 @@ function parseTestArgs(args: string[]): { target: string; options: GhostQAOption
         reportFile = args[++i];
         if (!reportFile) throw new Error('--report expects a file path');
         break;
+      case '--html':
+        htmlFile = args[++i];
+        if (!htmlFile) throw new Error('--html expects a file path');
+        break;
+      case '--server-cmd':
+        serverCmd = args[++i];
+        if (!serverCmd) throw new Error('--server-cmd expects a command, e.g. --server-cmd "npm run dev"');
+        break;
+      case '--server-timeout':
+        serverTimeoutMs = parsePositiveInt(args[++i], arg);
+        break;
       default:
         if (arg.startsWith('--')) throw new Error(`Unknown flag: ${arg}`);
         if (!target) target = arg;
@@ -158,129 +175,33 @@ function parseTestArgs(args: string[]): { target: string; options: GhostQAOption
     }
   }
   if (!target) throw new Error('Missing target URL. Usage: ghost-qa test <url>');
-  return { target, options, json, quiet, ...(reportFile ? { reportFile } : {}) };
+  return {
+    target,
+    options,
+    json,
+    quiet,
+    serverTimeoutMs,
+    ...(reportFile ? { reportFile } : {}),
+    ...(htmlFile ? { htmlFile } : {}),
+    ...(serverCmd ? { serverCmd } : {}),
+  };
 }
 
-async function runTest(target: string, options: GhostQAOptions): Promise<GhostQAReport> {
-  const startedAt = new Date();
-  const url = new URL(target);
-  if (!/^https?:$/.test(url.protocol)) {
-    throw new Error(`Target must be an http(s) URL, got: ${target}`);
-  }
+async function executeTest(parsed: ParsedTestArgs) {
+  const audit = () => runGhostQAAudit(parsed.target, parsed.options);
+  if (!parsed.serverCmd) return audit();
 
-  const session = new BrowserSession(options.headless);
-  const interactions: InteractionAction[] = [];
-  const rawIssues: QAIssue[] = [];
-  const records = new Map<string, RouteRecord>();
-  const crawler = new RouteCrawler(options.maxDepth, options.maxRoutes);
-  const runner = new InteractionRunner(options.maxInteractionsPerPage, 250);
-
-  const visit = async (route: DiscoveredRoute): Promise<string[]> => {
-    const discovered = new Set<string>();
-    const record: RouteRecord = {
-      url: route.url,
-      path: route.path,
-      depth: route.depth,
-      title: '',
-      viewports: [],
-      issueCount: 0,
-    };
-    records.set(route.url, record);
-
-    for (const viewport of options.viewports) {
-      record.viewports.push(viewport);
-      const page = await session.newPage(viewport);
-      const consoleTrap = new ConsoleTrap(viewport);
-      const networkTrap = new NetworkTrap(viewport);
-      const layoutTrap = new LayoutTrap(viewport);
-      consoleTrap.setRoute(route.path);
-      networkTrap.setRoute(route.path);
-      consoleTrap.attach(page);
-      networkTrap.attach(page);
-
-      try {
-        const response = await page.goto(route.url, {
-          waitUntil: 'domcontentloaded',
-          timeout: options.timeoutMs,
-        });
-        if (response && viewport === options.viewports[0]) {
-          record.httpStatus = response.status();
-        }
-        await page.waitForLoadState('networkidle', { timeout: 3000 }).catch(() => undefined);
-        await page.waitForTimeout(options.settleMs);
-
-        if (!record.title) record.title = await page.title().catch(() => '');
-
-        rawIssues.push(...(await layoutTrap.collect(page, route.path)));
-        for (const href of await RouteCrawler.extractLinks(page)) discovered.add(href);
-
-        if (options.interactions) {
-          const result = await runner.run(page, route.path, viewport);
-          interactions.push(...result.actions);
-          rawIssues.push(...result.issues);
-          for (const href of result.discoveredHrefs) discovered.add(href);
-          // Interactions may have surfaced fresh console/network events.
-          rawIssues.push(...(await layoutTrap.collect(page, route.path)));
-        }
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        rawIssues.push(
-          makeIssue({
-            category: 'navigation',
-            severity: 'critical',
-            type: 'navigation-failed',
-            message: `Failed to load ${route.path} on ${viewport}: ${message.replace(/\s+/g, ' ').slice(0, 260)}. Is the dev server running at ${url.origin}?`,
-            route: route.path,
-            viewport,
-            url: route.url,
-          }),
-        );
-      } finally {
-        rawIssues.push(...consoleTrap.issues, ...networkTrap.issues);
-        consoleTrap.detach();
-        networkTrap.detach();
-        await page.close().catch(() => undefined);
-      }
-    }
-    return [...discovered];
-  };
-
+  const server = new ManagedDevServer(parsed.serverCmd);
+  process.stderr.write(`\n👻 ghost-qa: starting dev server: ${parsed.serverCmd}\n`);
+  server.start();
   try {
-    await crawler.crawl(url.toString(), visit);
+    await server.waitUntilReady(parsed.target, parsed.serverTimeoutMs);
+    process.stderr.write(`👻 ghost-qa: server is responding at ${parsed.target}\n`);
+    return await audit();
   } finally {
-    await session.close();
+    await server.stop();
+    process.stderr.write('👻 ghost-qa: dev server terminated.\n');
   }
-
-  const finishedAt = new Date();
-  const issues = dedupeIssues(rawIssues);
-  const routes = [...records.values()];
-  for (const route of routes) {
-    route.issueCount = issues.filter((i) => i.route === route.path).length;
-  }
-  const summary = summarise(routes, interactions, issues, options.failOn);
-
-  return {
-    tool: 'ghost-qa',
-    version: VERSION,
-    targetUrl: url.toString(),
-    startedAt: startedAt.toISOString(),
-    finishedAt: finishedAt.toISOString(),
-    durationMs: finishedAt.getTime() - startedAt.getTime(),
-    passed: summary.passed,
-    options,
-    routes,
-    interactions,
-    issues,
-    summary: {
-      routesCrawled: summary.routesCrawled,
-      interactionsTested: summary.interactionsTested,
-      interactionsSkipped: summary.interactionsSkipped,
-      interactionsFailed: summary.interactionsFailed,
-      totalIssues: summary.totalIssues,
-      bySeverity: summary.bySeverity,
-      byCategory: summary.byCategory,
-    },
-  };
 }
 
 async function loadSkillTemplate(): Promise<string> {
@@ -341,7 +262,43 @@ export async function installSkill(
     const action = await upsertProtocol(join(targetDir, name));
     results.push({ file: name, action: `protocol ${action}` });
   }
+
+  const mcpAction = await installMcpConfig(join(targetDir, '.mcp.json'), force);
+  results.push({ file: '.mcp.json', action: mcpAction });
   return results;
+}
+
+/**
+ * Writes (or merges into) `.mcp.json`, preserving any MCP servers the
+ * project already configured. The ghost-qa entry is always refreshed so
+ * hosts invoke the published CLI: `npx -y ghost-qa mcp`.
+ */
+export async function installMcpConfig(
+  mcpJsonPath: string,
+  force = false,
+): Promise<string> {
+  const desired = mcpServerConfig();
+  let existing: Record<string, unknown> = {};
+  let action = 'installed';
+  try {
+    const raw = await readFile(mcpJsonPath, 'utf8');
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    if (parsed && typeof parsed === 'object') {
+      existing = parsed;
+      action = 'merged';
+    }
+  } catch {
+    action = 'installed';
+  }
+  const servers = (existing.mcpServers ?? {}) as Record<string, unknown>;
+  const previous = servers['ghost-qa'];
+  if (previous && !force && JSON.stringify(previous) === JSON.stringify(desired.mcpServers['ghost-qa'])) {
+    return 'already configured';
+  }
+  servers['ghost-qa'] = desired.mcpServers['ghost-qa'];
+  existing.mcpServers = servers;
+  await writeFile(mcpJsonPath, `${JSON.stringify(existing, null, 2)}\n`, 'utf8');
+  return previous ? 'updated' : action;
 }
 
 async function runInit(args: string[]): Promise<number> {
@@ -354,44 +311,31 @@ async function runInit(args: string[]): Promise<number> {
     process.stdout.write(`  • ${result.file} — ${result.action}\n`);
   }
   process.stdout.write(
-    '\nYour coding agent will now run `npx ghost-qa test <local-url>` and fix browser failures before reporting a task complete.\n',
+    '\nYour coding agent will now run `npx ghost-qa test <local-url>` and fix browser failures before reporting a task complete.\n' +
+      'MCP hosts (Claude Code, Claude Desktop, Cursor, Codex) can also call the ghost_qa_audit_url / ghost_qa_doctor tools directly via the .mcp.json entry above.\n',
   );
   return 0;
 }
 
 async function runDoctor(): Promise<number> {
   process.stdout.write(`\n👻 ghost-qa doctor v${VERSION}\n`);
-  let ok = true;
-
-  const nodeMajor = Number.parseInt(process.versions.node.split('.')[0] ?? '0', 10);
-  const nodeOk = nodeMajor >= 18;
-  ok &&= nodeOk;
-  process.stdout.write(`  ${nodeOk ? '✔' : '✖'} Node.js ${process.versions.node} ${nodeOk ? '' : '(requires >= 18.17)'}\n`);
-
-  let chromiumPath = process.env.GHOST_QA_CHROMIUM_PATH ?? '';
-  if (!chromiumPath) {
-    try {
-      chromiumPath = chromium.executablePath();
-    } catch {
-      chromiumPath = '';
-    }
-  }
-  const chromiumOk = chromiumPath !== '' && existsSync(chromiumPath);
-  if (chromiumOk) {
-    process.stdout.write(`  ✔ Chromium binary: ${chromiumPath}\n`);
+  const result = await runDoctorCheck();
+  process.stdout.write(
+    `  ${result.nodeOk ? '✔' : '✖'} Node.js ${result.node} ${result.nodeOk ? '' : '(requires >= 18.17)'}\n`,
+  );
+  if (result.chromiumFound) {
+    process.stdout.write(`  ✔ Chromium binary: ${result.chromiumPath}\n`);
+    const smokeOk = result.smokeTest.startsWith('Chromium launched');
+    process.stdout.write(`  ${smokeOk ? '✔' : '✖'} Browser smoke test: ${result.smokeTest}\n`);
   } else {
-    ok = false;
     process.stdout.write('  ✖ Chromium binary not found. Run: npx playwright install chromium\n');
   }
-
-  if (chromiumOk) {
-    const smoke = await smokeTestBrowser();
-    ok &&= smoke.ok;
-    process.stdout.write(`  ${smoke.ok ? '✔' : '✖'} Browser smoke test: ${smoke.detail}\n`);
-  }
-
-  process.stdout.write(ok ? '\n✔ ghost-qa is ready: npx ghost-qa test http://localhost:3000\n' : '\n✖ Setup incomplete — fix the items above.\n');
-  return ok ? 0 : 1;
+  process.stdout.write(
+    result.ready
+      ? '\n✔ ghost-qa is ready: npx ghost-qa test http://localhost:3000\n'
+      : '\n✖ Setup incomplete — fix the items above.\n',
+  );
+  return result.ready ? 0 : 1;
 }
 
 export async function main(argv = process.argv.slice(2)): Promise<number> {
@@ -399,24 +343,30 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
   try {
     switch (command) {
       case 'test': {
-        const { target, options, json, quiet, reportFile } = parseTestArgs(rest);
-        const report = await runTest(target, options);
-        if (reportFile) {
-          const isJson = reportFile.endsWith('.json');
-          await writeFile(resolve(reportFile), formatDiagnostic(report, isJson ? 'json' : 'markdown'), 'utf8');
+        const parsed = parseTestArgs(rest);
+        const report = await executeTest(parsed);
+        if (parsed.reportFile) {
+          const isJson = parsed.reportFile.endsWith('.json');
+          await writeFile(resolve(parsed.reportFile), formatDiagnostic(report, isJson ? 'json' : 'markdown'), 'utf8');
         }
-        if (json) {
+        if (parsed.htmlFile) {
+          await writeFile(resolve(parsed.htmlFile), formatHtmlReport(report), 'utf8');
+        }
+        if (parsed.json) {
           process.stdout.write(formatDiagnostic(report, 'json'));
-        } else if (!quiet) {
+        } else if (!parsed.quiet) {
           process.stdout.write(`${formatTerminalSummary(report)}\n`);
           if (!report.passed) {
             process.stdout.write(`\n${formatAgentDiagnostic(report)}\n`);
-          } else if (reportFile) {
-            process.stdout.write(`Report written to ${reportFile}\n`);
           }
+          if (parsed.reportFile) process.stdout.write(`Report written to ${parsed.reportFile}\n`);
+          if (parsed.htmlFile) process.stdout.write(`HTML evidence report written to ${parsed.htmlFile}\n`);
         }
         return report.passed ? 0 : 1;
       }
+      case 'mcp':
+        await startMcpServer();
+        return 0;
       case 'init':
         return await runInit(rest);
       case 'doctor':

@@ -60,7 +60,8 @@ npx ghost-qa init
                     │        │                    │                      │
                     │        ▼                    ▼                      │
                     │   ┌─────────┐  ┌──────────┐  ┌─────────┐          │
-                    │   │ CONSOLE │  │ NETWORK  │  │ LAYOUT  │  TRAPS   │
+                    │   │ CONSOLE │  │ NETWORK  │  │ LAYOUT  │          │
+                    │   │  A11Y   │  │  PERF    │  │ 5 TRAPS │          │
                     │   │  TRAP   │  │  TRAP    │  │  TRAP   │          │
                     │   └─────────┘  └──────────┘  └─────────┘          │
                     │   Desktop 1440×900  +  Mobile 390×844 (iPhone)     │
@@ -71,13 +72,13 @@ npx ghost-qa init
 
 1. The agent writes code and starts the dev server.
 2. `ghost-qa test` crawls every internal route on **desktop + mobile**, exercising interactive controls.
-3. Three traps capture everything the browser actually experienced.
+3. Five traps capture everything the browser actually experienced.
 4. Failures return as a token-efficient diagnostic; the agent fixes the root causes and re-runs.
 5. The loop ends only at **PASS** — that's when the agent may tell you it's done.
 
 ---
 
-## 🪤 The Three Runtime Traps
+## 🪤 The 5-Trap Engine
 
 ### 1. Console Trap — `src/traps/console-trap.ts`
 - Uncaught `pageerror` exceptions with stack traces
@@ -97,7 +98,54 @@ npx ghost-qa init
 - Broken images (`naturalWidth === 0`)
 - Missing `<meta name="viewport">` on mobile
 
+### 4. Accessibility Trap — `src/traps/a11y-trap.ts` *(new in v1.1.0)*
+- Buttons and links with **no accessible name** (icon-only controls screen readers can't identify)
+- Images **missing `alt`** attributes (descriptive alt, or `alt=""` for decorative)
+- Form inputs with **no associated label** — a placeholder is not a label
+- Missing document `<title>` and missing `<html lang>`
+
+### 5. Performance & Asset Trap — `src/traps/perf-trap.ts` *(new in v1.1.0)*
+- Slow page loads via Navigation Timing (DOMContentLoaded / load budgets, 2× = critical)
+- **Oversized resources** (> 1MB single asset) and excessive total payload (> 3MB)
+- Main-thread jank / layout-thrashing indicators from the Long Tasks API
+- Render-blocking `<head>` resources and excessive DOM size
+
 Plus a **safety-first Interaction Runner**: it fills forms with inert data (`ghost-qa@example.com`), opens tabs/modals/menus, and clicks ordinary buttons — but *never* destructive ones (`delete`, `checkout`, `pay`, `logout`, `publish`… are blocked by a tested safety gate).
+
+---
+
+## 🔌 Native MCP Server *(new in v1.1.0)*
+
+ghost-qa ships a zero-dependency **Model Context Protocol** server (JSON-RPC 2.0 over stdio), so MCP hosts can invoke browser verification as a native tool instead of shelling out:
+
+```bash
+npx ghost-qa mcp
+```
+
+| MCP tool | What it does |
+| --- | --- |
+| `ghost_qa_audit_url` | Runs the full crawl + 5-trap suite against a running URL and returns the Self-Healing Bug Report (text + structured content) |
+| `ghost_qa_doctor` | Verifies Node, Chromium availability, and runs a live browser smoke test |
+
+`npx ghost-qa init` writes the ready-to-use `.mcp.json` entry for you (merging with any servers you already have):
+
+```json
+{ "mcpServers": { "ghost-qa": { "command": "npx", "args": ["-y", "ghost-qa", "mcp"] } } }
+```
+
+Works with Claude Code, Claude Desktop, Cursor, Codex — any MCP host.
+
+---
+
+## 🖥️ Zero-lifecycle testing with `--server-cmd` *(new in v1.1.0)*
+
+Don't even start the dev server yourself — ghost-qa will spawn it, wait for the URL to respond, audit, and terminate the whole process tree afterward:
+
+```bash
+npx ghost-qa test http://localhost:3000 --server-cmd "npm run dev"
+```
+
+Pair it with `--html ghost-qa-report.html` for a self-contained, dark-mode **visual evidence dashboard** (routes, interactions, every trap finding per viewport) you can attach to CI artifacts or PRs.
 
 ---
 
@@ -138,7 +186,8 @@ The agent-facing report (`--report ghost-qa-report.md`) groups the same bugs by 
 | Command | Description |
 | --- | --- |
 | `ghost-qa test <url>` | Crawl a running app and trap browser failures. Exit `0` = PASS, `1` = blocking issues, `2` = runner error |
-| `ghost-qa init [--force]` | Install `.claude/skills/ghost-qa/SKILL.md` + verification protocol into `CLAUDE.md`, `AGENTS.md`, `.cursorrules` (idempotent) |
+| `ghost-qa init [--force]` | Install `.claude/skills/ghost-qa/SKILL.md`, verification protocol (`CLAUDE.md`, `AGENTS.md`, `.cursorrules`) + MCP config (`.mcp.json`) — all idempotent |
+| `ghost-qa mcp` | Run the native MCP server (JSON-RPC 2.0 over stdio) exposing `ghost_qa_audit_url` and `ghost_qa_doctor` |
 | `ghost-qa doctor` | Diagnose Node ≥ 18, Playwright and Chromium setup, with a live browser smoke test |
 | `ghost-qa --version` / `--help` | Version / usage |
 
@@ -155,6 +204,9 @@ The agent-facing report (`--report ghost-qa-report.md`) groups the same bugs by 
 | `--fail-on <severity>` | `major` | Exit 1 on `critical` \| `major` \| `minor` issues |
 | `--json` | off | Print the full machine-readable JSON report to stdout |
 | `--report <file>` | — | Write diagnostic to a file (Markdown, or JSON if the name ends `.json`) |
+| `--html <file>` | — | Write the self-contained dark-mode HTML visual evidence dashboard |
+| `--server-cmd <cmd>` | — | Spawn a dev server, wait for the URL, audit, then terminate the server tree |
+| `--server-timeout <ms>` | `30000` | How long to wait for `--server-cmd` to start responding |
 | `--quiet` | off | Suppress the terminal summary (report file + exit code only) |
 
 Works with any stack that serves HTML on localhost — Next.js, Vite, Remix, Astro, Create React App, plain static servers, Rails, Django… if a browser can open it, ghost-qa can judge it.
