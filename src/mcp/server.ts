@@ -63,9 +63,9 @@ export async function runDoctorCheck(): Promise<DoctorResult> {
     smokeTest = smoke.detail.replace(/\s+/g, ' ').slice(0, 400);
   }
   return {
-    ready: nodeMajor >= 18 && chromiumFound && smokeOk,
+    ready: nodeMajor >= 20 && chromiumFound && smokeOk,
     node: process.versions.node,
-    nodeOk: nodeMajor >= 18,
+    nodeOk: nodeMajor >= 20,
     chromiumPath,
     chromiumFound,
     smokeTest,
@@ -196,7 +196,7 @@ async function callTool(
       const result = await handlers.doctor();
       const lines = [
         `ghost-qa doctor — ${result.ready ? 'READY ✔' : 'NOT READY ✖'}`,
-        `Node.js: ${result.node} ${result.nodeOk ? '(ok)' : '(requires >= 18.17)'}`,
+        `Node.js: ${result.node} ${result.nodeOk ? '(ok)' : '(requires >= 20)'}`,
         `Chromium: ${result.chromiumFound ? result.chromiumPath : 'not found — run: npx playwright install chromium'}`,
         `Smoke test: ${result.smokeTest}`,
       ];

@@ -5,7 +5,7 @@
 [![CI](https://github.com/avivgerz-hue/ghost-qa/actions/workflows/ci.yml/badge.svg)](https://github.com/avivgerz-hue/ghost-qa/actions/workflows/ci.yml)
 [![npm version](https://img.shields.io/npm/v/ghost-qa.svg)](https://www.npmjs.com/package/ghost-qa)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
-[![Node >= 18](https://img.shields.io/badge/node-%3E%3D18-brightgreen.svg)](https://nodejs.org)
+[![Node >= 20](https://img.shields.io/badge/node-%3E%3D20-brightgreen.svg)](https://nodejs.org)
 [![Powered by Playwright](https://img.shields.io/badge/powered%20by-Playwright-45ba4b.svg)](https://playwright.dev)
 
 Coding agents (Claude Code, Codex, Cursor, Windsurf) write code **blind** — then declare victory while the actual browser has React hydration errors, broken buttons, 500ing APIs, or mobile layout overflow.
@@ -188,7 +188,7 @@ The agent-facing report (`--report ghost-qa-report.md`) groups the same bugs by 
 | `ghost-qa test <url>` | Crawl a running app and trap browser failures. Exit `0` = PASS, `1` = blocking issues, `2` = runner error |
 | `ghost-qa init [--force]` | Install `.claude/skills/ghost-qa/SKILL.md`, verification protocol (`CLAUDE.md`, `AGENTS.md`, `.cursorrules`) + MCP config (`.mcp.json`) — all idempotent |
 | `ghost-qa mcp` | Run the native MCP server (JSON-RPC 2.0 over stdio) exposing `ghost_qa_audit_url` and `ghost_qa_doctor` |
-| `ghost-qa doctor` | Diagnose Node ≥ 18, Playwright and Chromium setup, with a live browser smoke test |
+| `ghost-qa doctor` | Diagnose Node ≥ 20, Playwright and Chromium setup, with a live browser smoke test |
 | `ghost-qa --version` / `--help` | Version / usage |
 
 ### `test` flags
@@ -222,6 +222,20 @@ Works with any stack that serves HTML on localhost — Next.js, Vite, Remix, Ast
 - **Cursor / Windsurf** → protocol in `.cursorrules`
 
 The protocol is wrapped in `<!-- ghost-qa:start/end -->` markers, so re-running `init` updates it in place without duplicating or clobbering your other instructions.
+
+## ⚖️ Scope & limitations (read this — we mean it)
+
+ghost-qa is a **local development verification tool**, and we'd rather be honest than viral:
+
+- **Not a WCAG audit.** The Accessibility Trap catches common machine-checkable failures (names, alt, labels, title, lang). Full WCAG conformance still needs assistive-technology testing.
+- **Not a replacement for your test suite.** It complements unit/E2E tests by checking the *live* app the way a browser experiences it — it writes no persistent tests for you.
+- **Heuristic safety.** The Interaction Runner refuses destructive-looking controls (delete, checkout, pay, logout…) and fills only inert data, but "destructive" is ultimately a word list. It is designed for localhost dev servers.
+- **Auth-gated apps.** Without credentials, ghost-qa audits what an anonymous visitor sees (often the login page). Authenticated crawling is on the roadmap, not in the box today.
+- **Performance numbers are local-machine heuristics.** Borderline perf findings on a loaded CI box deserve a re-run, not a panic.
+- **Never point it at production systems or sites you don't own** or have explicit permission to test. It clicks real buttons.
+- The MCP server is **stdio-only** (no network ports). Only wire it into MCP hosts you trust.
+
+Found a trap flagging a healthy page? That's our most valuable issue type — [file it with the report attached](https://github.com/avivgerz-hue/ghost-qa/issues/new/choose). Security reports: see [SECURITY.md](./SECURITY.md). Release history: [CHANGELOG.md](./CHANGELOG.md).
 
 ## 🧑‍💻 Development
 

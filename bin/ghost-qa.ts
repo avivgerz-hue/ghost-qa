@@ -31,17 +31,22 @@ ${PROTOCOL_END}`;
 
 const FALLBACK_SKILL = `# ghost-qa — Verify in Browser Before Done
 
-You are a coding agent. Never report a frontend task complete without running it in a real browser.
+You are a coding agent. Never report a frontend task complete without running it in a real browser — the browser is the source of truth, not your mental model of the DOM.
 
 ## The Self-Healing Loop
 
-1. Start (or reuse) the project's dev server.
-2. Run \`npx ghost-qa test <local-url>\` — it crawls routes on desktop (1440×900) and mobile (390×844), traps console errors, hydration mismatches, failed requests, layout overflow and broken interactions.
-3. Read the Self-Healing Bug Report. Fix every critical/major issue by \`#id\`, in source — never by suppressing the check.
-4. Re-run \`npx ghost-qa test <local-url>\` until it prints PASS.
-5. Only then report completion, mentioning that ghost-qa passed.
+1. Run the audit against the final code:
+   - Server already running: \`npx ghost-qa test <local-url>\`
+   - Otherwise: \`npx ghost-qa test <local-url> --server-cmd "npm run dev"\` (ghost-qa spawns, awaits and tears down the server)
+   - Or call the \`ghost_qa_audit_url\` MCP tool if your host exposes it (identical engine).
+   It crawls routes on Desktop 1440x900 + Mobile 390x844 and runs the 5-Trap Engine: console/hydration, network, layout, accessibility, performance — plus safe interaction testing (never destructive controls).
+2. Read the Self-Healing Bug Report. Fix every critical/major issue by \`#id\`, at the root cause in source — never silence the checker, delete failing UI, or add suppressHydrationWarning.
+3. Re-run the identical command until it prints \`GHOST-QA PASS\`. If stuck on the same \`#id\` after 5 loops, report that honestly instead of declaring success.
+4. Only then report completion, naming the URL verified, routes crawled, interactions tested, and issues fixed.
 
-See https://github.com/avivgerz-hue/ghost-qa for flags (\`--max-depth\`, \`--max-routes\`, \`--json\`, \`--report\`).
+Useful flags: \`--max-depth\`, \`--max-routes\`, \`--viewport mobile\`, \`--json\`, \`--report <file>\`, \`--html <file>\`, \`--fail-on minor\`.
+If Chromium is missing: \`npx playwright install chromium\`, then \`npx ghost-qa doctor\`.
+Full skill: https://github.com/avivgerz-hue/ghost-qa/blob/main/SKILL.md
 `;
 
 const HELP = `
@@ -321,7 +326,7 @@ async function runDoctor(): Promise<number> {
   process.stdout.write(`\n👻 ghost-qa doctor v${VERSION}\n`);
   const result = await runDoctorCheck();
   process.stdout.write(
-    `  ${result.nodeOk ? '✔' : '✖'} Node.js ${result.node} ${result.nodeOk ? '' : '(requires >= 18.17)'}\n`,
+    `  ${result.nodeOk ? '✔' : '✖'} Node.js ${result.node} ${result.nodeOk ? '' : '(requires >= 20)'}\n`,
   );
   if (result.chromiumFound) {
     process.stdout.write(`  ✔ Chromium binary: ${result.chromiumPath}\n`);

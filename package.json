@@ -1,6 +1,6 @@
 {
   "name": "ghost-qa",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Autonomous headless browser QA & self-healing verification loop for coding agents. Crawls localhost, traps console/network/layout failures, and feeds structured diagnostics back to the agent.",
   "type": "module",
   "bin": {
@@ -26,7 +26,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "qa": "npm run build && npm test"
+    "qa": "npm run build && npm test",
+    "prepublishOnly": "npm run qa"
   },
   "keywords": [
     "qa",
@@ -51,10 +52,10 @@
     "url": "https://github.com/avivgerz-hue/ghost-qa/issues"
   },
   "engines": {
-    "node": ">=18.17"
+    "node": ">=20"
   },
   "dependencies": {
-    "playwright": "~1.49.1"
+    "playwright": "^1.49.1"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

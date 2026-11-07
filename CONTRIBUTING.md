@@ -13,9 +13,7 @@ npm run build
 npm test
 ```
 
-Requirements: Node.js >= 18.17.
-
-> **Dependency note:** `playwright` is deliberately pinned to `~1.49.1` — it is the last Playwright line that supports Node 18 (newer releases require Node >= 20 and break the Node 18 CI job at import time). Only raise this pin together with raising the `engines` floor, the CI matrix, and the README badge.
+Requirements: Node.js >= 20 (Node 18 support ended with v1.1.0; current Playwright requires Node 20+).
 
 ## Project layout
 
@@ -45,7 +43,7 @@ Requirements: Node.js >= 18.17.
 
 ## Pull requests
 
-- Run `npm run build && npm test` locally — CI runs the same on Node 18/20/22 plus a Chromium smoke test.
+- Run `npm run build && npm test` locally — CI runs the same on Node 20/22, with Chromium installed before the suite so the browser E2E test executes.
 - Keep PRs focused; include before/after terminal output for reporter changes.
 - Update the README flags table when CLI flags change.
 

@@ -1,0 +1,55 @@
+name: 🐛 Bug report
+description: A trap fired wrongly, the crawler/runner broke, or a report is misleading
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! ghost-qa lives on precise reproductions.
+        If this is a security issue, please use Security → Report a vulnerability instead of a public issue.
+  - type: input
+    id: version
+    attributes:
+      label: ghost-qa version
+      description: Output of `npx ghost-qa --version`
+      placeholder: 1.2.0
+    validations:
+      required: true
+  - type: input
+    id: env
+    attributes:
+      label: Environment
+      description: Node version, OS, and target stack (Next.js/Vite/…)
+      placeholder: Node 22, macOS, Next.js 15
+    validations:
+      required: true
+  - type: textarea
+    id: command
+    attributes:
+      label: Command you ran
+      placeholder: npx ghost-qa test http://localhost:3000 --max-depth 2
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: What happened instead?
+      description: Paste the terminal summary, or attach the `--json` / `--html` report if you can share it.
+    validations:
+      required: true
+  - type: dropdown
+    id: false_positive
+    attributes:
+      label: Is this a false positive (a trap flagging a healthy page)?
+      options:
+        - "No — ghost-qa itself misbehaved"
+        - "Yes — a trap flagged something that is actually fine"
+        - "Not sure"
+    validations:
+      required: true

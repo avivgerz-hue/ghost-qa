@@ -1,0 +1,31 @@
+name: ✨ Feature request
+description: A new trap check, flag, integration, or reporter improvement
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What browser failure or workflow pain should ghost-qa catch/handle?
+      description: Concrete example pages/bugs are gold here.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What would you like ghost-qa to do?
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Which part of ghost-qa does this touch?
+      options:
+        - New trap check (console/network/layout/a11y/perf)
+        - Crawler / interaction runner
+        - CLI / flags / dev-server lifecycle
+        - MCP server
+        - Reports (terminal / markdown / JSON / HTML)
+        - Agent skill (SKILL.md / init)
+        - Other
+    validations:
+      required: true

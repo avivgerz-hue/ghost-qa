@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 🔒 Report a vulnerability
+    url: https://github.com/avivgerz-hue/ghost-qa/security/advisories/new
+    about: Please report security issues privately, not as public issues.
+  - name: 📖 Documentation
+    url: https://github.com/avivgerz-hue/ghost-qa#readme
+    about: Quickstart, CLI flags, MCP setup and the agent skill.

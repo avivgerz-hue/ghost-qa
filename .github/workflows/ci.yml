@@ -16,7 +16,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [18, 20, 22]
+        node: [20, 22]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -33,11 +33,11 @@ jobs:
       - name: Type-check & build
         run: npm run build
 
-      - name: Run Vitest suite
-        run: npm test
-
-      - name: Install Chromium for smoke test
+      - name: Install Chromium (for browser E2E test + smoke test)
         run: npx playwright install --with-deps chromium
+
+      - name: Run Vitest suite (unit + real-browser E2E)
+        run: npm test
 
       - name: CLI smoke test (doctor)
         run: node dist/bin/ghost-qa.js doctor

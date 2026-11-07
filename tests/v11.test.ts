@@ -18,6 +18,7 @@ import { escapeHtml, formatHtmlReport } from '../src/reporter/html-report.js';
 import { ManagedDevServer, waitForUrl, withManagedDevServer } from '../src/engine/server-lifecycle.js';
 import { installMcpConfig } from '../bin/ghost-qa.js';
 import { summarise, type GhostQAReport } from '../src/types.js';
+import { GHOST_QA_VERSION } from '../src/engine/audit-runner.js';
 
 const a11y = (overrides: Partial<A11yMetrics> = {}): A11yMetrics => ({ ...EMPTY_A11Y_METRICS, ...overrides });
 const perf = (overrides: Partial<PerfMetrics> = {}): PerfMetrics => ({ ...EMPTY_PERF_METRICS, ...overrides });
@@ -136,7 +137,7 @@ describe('MCP JSON-RPC protocol handler', () => {
     );
     const result = res?.result as { protocolVersion: string; serverInfo: { name: string; version: string } };
     expect(result.protocolVersion).toBe('2024-11-05');
-    expect(result.serverInfo).toEqual({ name: 'ghost-qa', version: '1.1.0' });
+    expect(result.serverInfo).toEqual({ name: 'ghost-qa', version: GHOST_QA_VERSION });
   });
 
   it('lists both ghost-qa tools with input schemas', async () => {
