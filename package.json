@@ -1,0 +1,64 @@
+{
+  "name": "ghost-qa",
+  "version": "1.0.0",
+  "description": "Autonomous headless browser QA & self-healing verification loop for coding agents. Crawls localhost, traps console/network/layout failures, and feeds structured diagnostics back to the agent.",
+  "type": "module",
+  "bin": {
+    "ghost-qa": "./dist/bin/ghost-qa.js"
+  },
+  "main": "./dist/src/index.js",
+  "types": "./dist/src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/src/index.d.ts",
+      "import": "./dist/src/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "SKILL.md",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "qa": "npm run build && npm test"
+  },
+  "keywords": [
+    "qa",
+    "playwright",
+    "headless-browser",
+    "coding-agent",
+    "claude-code",
+    "cursor",
+    "codex",
+    "e2e",
+    "self-healing",
+    "browser-verification"
+  ],
+  "author": "VibeFoundry",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/avivgerz-hue/ghost-qa.git"
+  },
+  "homepage": "https://github.com/avivgerz-hue/ghost-qa#readme",
+  "bugs": {
+    "url": "https://github.com/avivgerz-hue/ghost-qa/issues"
+  },
+  "engines": {
+    "node": ">=18.17"
+  },
+  "dependencies": {
+    "playwright": "^1.49.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}

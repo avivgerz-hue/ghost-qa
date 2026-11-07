@@ -1,0 +1,12 @@
+node_modules/
+dist/
+coverage/
+.playwright/
+test-results/
+playwright-report/
+ghost-qa-report.*
+*.log
+.DS_Store
+.env
+.env.*
+!.env.example
