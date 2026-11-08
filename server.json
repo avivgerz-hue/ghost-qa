@@ -23,7 +23,7 @@
       "packageArguments": [
         {
           "type": "positional",
-          "value": "ghost-qa"
+          "value": "github:avivgerz-hue/ghost-qa"
         },
         {
           "type": "positional",
@@ -38,7 +38,7 @@
   "tools": [
     {
       "name": "ghost_qa_audit_url",
-      "description": "Run the full ghost-qa headless browser audit against a running localhost app: crawls internal routes on Desktop 1440x900 and Mobile 390x844, safely exercises interactive controls, and traps console/hydration errors, failed network requests, layout overflow, accessibility bugs and performance problems. Returns the Self-Healing Bug Report — fix every critical/major issue it reports before declaring the task done.",
+      "description": "Run the full ghost-qa headless browser audit against a running localhost app: crawls internal routes on Desktop 1440x900 and Mobile 390x844, safely exercises interactive controls, and traps console/hydration errors, failed network requests, layout overflow, accessibility bugs and performance problems. Returns the Self-Healing Bug Report \u2014 fix every critical/major issue it reports before declaring the task done.",
       "inputSchema": {
         "type": "object",
         "properties": {

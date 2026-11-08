@@ -49,4 +49,4 @@ Requirements: Node.js >= 20 (Node 18 support ended with v1.1.0; current Playwrig
 
 ## Reporting bugs
 
-Open an issue with: ghost-qa version (`npx ghost-qa --version`), Node version, target framework (Next.js/Vite/…), the full terminal output, and the `--json` report if you can share it.
+Open an issue with: ghost-qa version (`npx github:avivgerz-hue/ghost-qa --version`), Node version, target framework (Next.js/Vite/…), the full terminal output, and the `--json` report if you can share it.

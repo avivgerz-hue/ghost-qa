@@ -24,7 +24,7 @@ ghost-qa is a **local development tool**. It launches a headless browser against
 
 Please report security issues privately via GitHub's **"Report a vulnerability"** button (Security → Advisories) on this repository, rather than opening a public issue. Include:
 
-- Affected version (`npx ghost-qa --version`)
+- Affected version (`npx github:avivgerz-hue/ghost-qa --version`)
 - A minimal reproduction (target fixture + command) 
 - The impact you believe it has
 

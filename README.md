@@ -13,7 +13,7 @@ Coding agents (Claude Code, Codex, Cursor, Windsurf) write code **blind** — th
 `ghost-qa` fixes that. One command launches a headless browser against your running app, crawls the live DOM, safely pokes every button, traps runtime/network/layout failures, and hands the agent a structured **Self-Healing Bug Report** so it fixes its own bugs *before* telling you it's done.
 
 ```bash
-npx ghost-qa test http://localhost:3000
+npx github:avivgerz-hue/ghost-qa test http://localhost:3000
 ```
 
 No test scripts. No config. No mercy for "it works on my machine".
@@ -28,10 +28,10 @@ npm run dev            # → http://localhost:3000
 
 # 2. Verify it in a real browser (one-time: downloads Chromium)
 npx playwright install chromium
-npx ghost-qa test http://localhost:3000
+npx github:avivgerz-hue/ghost-qa test http://localhost:3000
 
 # 3. Teach your coding agent to do this automatically, forever
-npx ghost-qa init
+npx github:avivgerz-hue/ghost-qa init
 ```
 
 `ghost-qa init` installs `.claude/skills/ghost-qa/SKILL.md` and appends the strict **"Verify in Browser Before Done"** protocol to `CLAUDE.md`, `AGENTS.md`, and `.cursorrules`. From then on, your agent runs ghost-qa itself, fixes what it finds, and only reports completion on a PASS.
@@ -119,7 +119,7 @@ Plus a **safety-first Interaction Runner**: it fills forms with inert data (`gho
 ghost-qa ships a zero-dependency **Model Context Protocol** server (JSON-RPC 2.0 over stdio), so MCP hosts can invoke browser verification as a native tool instead of shelling out:
 
 ```bash
-npx ghost-qa mcp
+npx github:avivgerz-hue/ghost-qa mcp
 ```
 
 | MCP tool | What it does |
@@ -127,10 +127,10 @@ npx ghost-qa mcp
 | `ghost_qa_audit_url` | Runs the full crawl + 5-trap suite against a running URL and returns the Self-Healing Bug Report (text + structured content) |
 | `ghost_qa_doctor` | Verifies Node, Chromium availability, and runs a live browser smoke test |
 
-`npx ghost-qa init` writes the ready-to-use `.mcp.json` entry for you (merging with any servers you already have):
+`npx github:avivgerz-hue/ghost-qa init` writes the ready-to-use `.mcp.json` entry for you (merging with any servers you already have):
 
 ```json
-{ "mcpServers": { "ghost-qa": { "command": "npx", "args": ["-y", "ghost-qa", "mcp"] } } }
+{ "mcpServers": { "ghost-qa": { "command": "npx", "args": ["-y", "github:avivgerz-hue/ghost-qa", "mcp"] } } }
 ```
 
 Works with Claude Code, Claude Desktop, Cursor, Codex — any MCP host.
@@ -142,7 +142,7 @@ Works with Claude Code, Claude Desktop, Cursor, Codex — any MCP host.
 Don't even start the dev server yourself — ghost-qa will spawn it, wait for the URL to respond, audit, and terminate the whole process tree afterward:
 
 ```bash
-npx ghost-qa test http://localhost:3000 --server-cmd "npm run dev"
+npx github:avivgerz-hue/ghost-qa test http://localhost:3000 --server-cmd "npm run dev"
 ```
 
 Pair it with `--html ghost-qa-report.html` for a self-contained, dark-mode **visual evidence dashboard** (routes, interactions, every trap finding per viewport) you can attach to CI artifacts or PRs.
@@ -215,7 +215,7 @@ Works with any stack that serves HTML on localhost — Next.js, Vite, Remix, Ast
 
 ## 🤖 The Agent Skill
 
-`SKILL.md` (repo root) is the master skill. `npx ghost-qa init` installs it for:
+`SKILL.md` (repo root) is the master skill. `npx github:avivgerz-hue/ghost-qa init` installs it for:
 
 - **Claude Code** → `.claude/skills/ghost-qa/SKILL.md` + protocol in `CLAUDE.md`
 - **Codex / generic agents** → protocol in `AGENTS.md`

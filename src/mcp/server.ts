@@ -14,7 +14,7 @@ import { DEFAULT_OPTIONS, type GhostQAOptions, type GhostQAReport } from '../typ
  * stderr only (stdout is the protocol channel). Compatible with Claude Code,
  * Claude Desktop, Cursor, Codex and any other MCP host:
  *
- *   { "mcpServers": { "ghost-qa": { "command": "npx", "args": ["-y", "ghost-qa", "mcp"] } } }
+ *   { "mcpServers": { "ghost-qa": { "command": "npx", "args": ["-y", "github:avivgerz-hue/ghost-qa", "mcp"] } } }
  */
 
 export const MCP_PROTOCOL_VERSION = '2024-11-05';
@@ -302,7 +302,7 @@ export async function handleJsonRpcLine(
 export function mcpServerConfig(): { mcpServers: Record<string, { command: string; args: string[] }> } {
   return {
     mcpServers: {
-      'ghost-qa': { command: 'npx', args: ['-y', 'ghost-qa', 'mcp'] },
+      'ghost-qa': { command: 'npx', args: ['-y', 'github:avivgerz-hue/ghost-qa', 'mcp'] },
     },
   };
 }

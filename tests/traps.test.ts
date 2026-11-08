@@ -292,7 +292,7 @@ describe('Reporters', () => {
     expect(md).toContain(`#${issue.id}`);
     expect(md).toContain('## Fix playbook');
     expect(md).toContain(FIX_PLAYBOOK.network.slice(0, 40));
-    expect(md).toContain('npx ghost-qa test http://localhost:3000');
+    expect(md).toContain('npx github:avivgerz-hue/ghost-qa test http://localhost:3000');
   });
 
   it('agent diagnostic passes cleanly with no issues', () => {

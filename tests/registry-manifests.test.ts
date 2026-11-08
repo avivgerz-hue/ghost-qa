@@ -47,8 +47,10 @@ describe('MCP registry manifests (smithery / glama / official registry)', () => 
     const pkgJson = readJson('package.json');
     expect(pkgJson.version).toBe(GHOST_QA_VERSION);
 
-    const packages = server.packages as Array<{ registryType: string; identifier: string; transport: { type: string } }>;
+    const packages = server.packages as Array<{ registryType: string; identifier: string; transport: { type: string }; packageArguments: Array<{ value: string }> }>;
     expect(packages[0]).toMatchObject({ registryType: 'npm', identifier: 'ghost-qa', transport: { type: 'stdio' } });
+    // No npm account required: the runnable spec resolves straight from GitHub.
+    expect(packages[0]?.packageArguments[0]?.value).toBe('github:avivgerz-hue/ghost-qa');
 
     const tools = server.tools as ManifestTool[];
     expect(tools.map((t) => t.name)).toEqual(['ghost_qa_audit_url', 'ghost_qa_doctor']);

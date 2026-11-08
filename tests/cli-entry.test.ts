@@ -8,7 +8,7 @@ import { isMainEntry } from '../bin/ghost-qa.js';
 /**
  * Regression test: package managers run bins via a node_modules/.bin
  * symlink. The CLI's entry-point check must realpath-resolve that symlink,
- * otherwise `npx ghost-qa` silently exits 0 with no output.
+ * otherwise `npx` (bin symlink) silently exits 0 with no output.
  */
 describe('CLI entry-point detection (npx symlink regression)', () => {
   it('recognises invocation through a .bin-style symlink', async () => {
