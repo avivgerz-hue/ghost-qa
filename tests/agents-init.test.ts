@@ -20,6 +20,15 @@ const root = process.cwd();
 describe('GitHub Marketplace action.yml', () => {
   const action = readText(join(root, 'action.yml'));
 
+  it('meets Marketplace name/description limits (<125 chars)', () => {
+    expect(action).toContain('name: "Ghost-QA — Autonomous Browser QA"');
+    const description = action.match(/^description: "(.+)"$/m)?.[1] ?? '';
+    expect(description).toBe(
+      'Autonomous 8-trap headless browser QA engine for Desktop, Tablet & Mobile across Light and Dark themes.',
+    );
+    expect(description.length).toBeLessThan(125);
+  });
+
   it('carries Marketplace branding and the composite runtime', () => {
     expect(action).toContain('branding:');
     expect(action).toContain('icon: "check-circle"');

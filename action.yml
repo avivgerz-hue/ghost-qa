@@ -1,5 +1,5 @@
-name: "ghost-qa — Autonomous Browser QA"
-description: "Headless-browser QA for coding agents: 8-trap deep inspection (console, network, layout, WCAG a11y + keyboard focus, Core Web Vitals, links, SEO, theme parity) across desktop/tablet/mobile in light + dark, with a QA Health Score (A+ to F), self-healing bug report, and interactive HTML dashboard."
+name: "Ghost-QA — Autonomous Browser QA"
+description: "Autonomous 8-trap headless browser QA engine for Desktop, Tablet & Mobile across Light and Dark themes."
 author: "VibeFoundry"
 branding:
   icon: "check-circle"
