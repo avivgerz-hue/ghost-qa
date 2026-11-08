@@ -2,6 +2,7 @@ import { createInterface } from 'node:readline';
 import { existsSync } from 'node:fs';
 import { chromium } from 'playwright';
 import { runGhostQAAudit, GHOST_QA_VERSION } from '../engine/audit-runner.js';
+import { compareReports, formatCompareReport, type CompareDelta } from '../engine/compare.js';
 import { smokeTestBrowser } from '../engine/browser-session.js';
 import { formatAgentDiagnostic } from '../reporter/agent-diagnostic.js';
 import { DEFAULT_OPTIONS, type GhostQAOptions, type GhostQAReport } from '../types.js';
@@ -84,7 +85,7 @@ export const MCP_TOOLS = [
   {
     name: 'ghost_qa_audit_url',
     description:
-      'Run the full ghost-qa headless browser audit against a running localhost app: crawls internal routes on Desktop 1440x900 and Mobile 390x844, safely exercises interactive controls, and traps console/hydration errors, failed network requests, layout overflow, accessibility bugs and performance problems. Returns the Self-Healing Bug Report — fix every critical/major issue it reports before declaring the task done.',
+      'Run the full ghost-qa Deep Browser Inspection against a running localhost app: crawls internal routes on Desktop 1440x900, Tablet 768x1024 and Mobile 375x812 under light + dark colour schemes, safely exercises interactive controls, and runs the 8-Trap Engine (console/framework runtime, network/asset integrity, layout/geometry/collision, WCAG accessibility + keyboard focus, Core Web Vitals performance, link integrity, SEO/metadata, theme parity). Returns the Self-Healing Bug Report plus the QA Health Score (0-100, grade A+ to F) — fix every critical/major issue and re-audit until the score is 95+ before declaring the task done. Save the returned report JSON as before.json for ghost_qa_compare.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -96,11 +97,31 @@ export const MCP_TOOLS = [
         maxRoutes: { type: 'number', description: 'Maximum routes to visit (default 25)' },
         viewport: {
           type: 'string',
-          enum: ['both', 'desktop', 'mobile'],
-          description: 'Viewports to test (default both)',
+          enum: ['all', 'desktop', 'tablet', 'mobile'],
+          description: 'Viewports to test (default all: desktop + tablet + mobile)',
         },
       },
       required: ['url'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'ghost_qa_compare',
+    description:
+      'Compare two ghost-qa JSON reports (the objects returned by ghost_qa_audit_url, or report.json files written by the CLI) and return the Regression & Verification Delta Report: scoreDelta, fixedFindings, newRegressions and remainingFindings. Use it after fixing bugs to prove the fix worked without introducing regressions; verified=true only at score >= 95 with zero regressions and no blocking findings left.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        before: {
+          type: 'object',
+          description: 'Baseline ghost-qa report JSON (before fixes), e.g. the saved before.json object',
+        },
+        after: {
+          type: 'object',
+          description: 'New ghost-qa report JSON (after fixes), e.g. the saved after.json object',
+        },
+      },
+      required: ['before', 'after'],
       additionalProperties: false,
     },
   },
@@ -117,11 +138,13 @@ export type McpToolName = (typeof MCP_TOOLS)[number]['name'];
 export interface McpHandlers {
   audit: (target: string, options: GhostQAOptions) => Promise<GhostQAReport>;
   doctor: () => Promise<DoctorResult>;
+  compare?: (before: GhostQAReport, after: GhostQAReport) => CompareDelta;
 }
 
 export const defaultHandlers: McpHandlers = {
   audit: (target, options) => runGhostQAAudit(target, options),
   doctor: () => runDoctorCheck(),
+  compare: (before, after) => compareReports(before, after),
 };
 
 function toolResult(text: string, structured?: Record<string, unknown>, isError = false) {
@@ -140,10 +163,12 @@ function optionsFromArgs(args: Record<string, unknown>): GhostQAOptions {
   if (typeof args.maxRoutes === 'number' && Number.isFinite(args.maxRoutes) && args.maxRoutes > 0) {
     options.maxRoutes = Math.floor(args.maxRoutes);
   }
-  if (args.viewport === 'desktop' || args.viewport === 'mobile') {
+  if (args.viewport === 'desktop' || args.viewport === 'tablet' || args.viewport === 'mobile') {
     options.viewports = [args.viewport];
   } else if (args.viewport === 'both') {
     options.viewports = ['desktop', 'mobile'];
+  } else if (args.viewport === 'all') {
+    options.viewports = ['desktop', 'tablet', 'mobile'];
   }
   return options;
 }
@@ -173,6 +198,10 @@ async function callTool(
           totalIssues: report.summary.totalIssues,
           bySeverity: report.summary.bySeverity,
           byCategory: report.summary.byCategory,
+          healthScore: report.health?.score,
+          grade: report.health?.grade,
+          byTrap: report.health?.byTrap,
+          report,
           issues: report.issues.map((issue) => ({
             id: issue.id,
             severity: issue.severity,
@@ -180,6 +209,8 @@ async function callTool(
             type: issue.type,
             route: issue.route,
             viewport: issue.viewport,
+            ...(issue.colorScheme ? { colorScheme: issue.colorScheme } : {}),
+            ...(issue.selector ? { selector: issue.selector } : {}),
             message: issue.message,
           })),
         });
@@ -191,6 +222,19 @@ async function callTool(
           true,
         );
       }
+    }
+    case 'ghost_qa_compare': {
+      const isReport = (value: unknown): value is GhostQAReport =>
+        typeof value === 'object' && value !== null && Array.isArray((value as GhostQAReport).issues);
+      if (!isReport(args.before) || !isReport(args.after)) {
+        return toolResult(
+          'Invalid arguments: "before" and "after" must be ghost-qa report JSON objects (with an issues array), as returned by ghost_qa_audit_url or written to report.json by the CLI.',
+          undefined,
+          true,
+        );
+      }
+      const delta = (handlers.compare ?? defaultHandlers.compare!)(args.before, args.after);
+      return toolResult(formatCompareReport(delta), { ...delta });
     }
     case 'ghost_qa_doctor': {
       const result = await handlers.doctor();
@@ -237,7 +281,7 @@ export async function handleJsonRpcRequest(
         capabilities: { tools: { listChanged: false } },
         serverInfo: { ...MCP_SERVER_INFO },
         instructions:
-          'Use ghost_qa_audit_url to verify any frontend change in a real browser before reporting a task complete. Fix every critical/major issue it returns and re-run until it passes.',
+          'Self-healing verification loop: (1) ghost_qa_doctor to confirm readiness, (2) ghost_qa_audit_url across desktop/tablet/mobile + light/dark and save the report as the baseline, (3) map selectors/stacks back to source components and fix root causes, (4) re-audit and call ghost_qa_compare(before, after). Report done only when the delta shows zero new regressions, zero blocking findings, and QA Health Score >= 95 (grade A+ band).',
       });
     }
     case 'ping':

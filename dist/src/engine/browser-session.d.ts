@@ -1,5 +1,5 @@
 import { type BrowserContext, type Page } from 'playwright';
-import type { ViewportName } from '../types.js';
+import type { ColorScheme, ViewportName } from '../types.js';
 export interface ViewportProfile {
     name: ViewportName;
     width: number;
@@ -25,8 +25,8 @@ export declare class BrowserSession {
     constructor(headless?: boolean);
     launch(): Promise<void>;
     get isLaunched(): boolean;
-    contextFor(viewport: ViewportName): Promise<BrowserContext>;
-    newPage(viewport: ViewportName): Promise<Page>;
+    contextFor(viewport: ViewportName, colorScheme?: ColorScheme): Promise<BrowserContext>;
+    newPage(viewport: ViewportName, colorScheme?: ColorScheme): Promise<Page>;
     close(): Promise<void>;
 }
 /** Lightweight launch smoke-test used by `ghost-qa doctor`. */

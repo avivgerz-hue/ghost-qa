@@ -1,5 +1,5 @@
 import { chromium, type Browser, type BrowserContext, type Page } from 'playwright';
-import type { ViewportName } from '../types.js';
+import type { ColorScheme, ViewportName } from '../types.js';
 
 export interface ViewportProfile {
   name: ViewportName;
@@ -20,10 +20,20 @@ export const VIEWPORT_PROFILES: Record<ViewportName, ViewportProfile> = {
     hasTouch: false,
     deviceScaleFactor: 1,
   },
+  tablet: {
+    name: 'tablet',
+    width: 768,
+    height: 1024,
+    isMobile: false,
+    hasTouch: true,
+    deviceScaleFactor: 2,
+    userAgent:
+      'Mozilla/5.0 (iPad; CPU OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15',
+  },
   mobile: {
     name: 'mobile',
-    width: 390,
-    height: 844,
+    width: 375,
+    height: 812,
     isMobile: true,
     hasTouch: true,
     deviceScaleFactor: 3,
@@ -50,7 +60,7 @@ export class BrowserNotInstalledError extends Error {
  */
 export class BrowserSession {
   private browser: Browser | null = null;
-  private readonly contexts = new Map<ViewportName, BrowserContext>();
+  private readonly contexts = new Map<string, BrowserContext>();
   private readonly headless: boolean;
 
   constructor(headless = true) {
@@ -77,9 +87,10 @@ export class BrowserSession {
     return this.browser !== null;
   }
 
-  async contextFor(viewport: ViewportName): Promise<BrowserContext> {
+  async contextFor(viewport: ViewportName, colorScheme: ColorScheme = 'light'): Promise<BrowserContext> {
     if (!this.browser) await this.launch();
-    const existing = this.contexts.get(viewport);
+    const key = `${viewport}:${colorScheme}`;
+    const existing = this.contexts.get(key);
     if (existing) return existing;
 
     const profile = VIEWPORT_PROFILES[viewport];
@@ -88,14 +99,15 @@ export class BrowserSession {
       isMobile: profile.isMobile,
       hasTouch: profile.hasTouch,
       deviceScaleFactor: profile.deviceScaleFactor,
+      colorScheme,
       ...(profile.userAgent ? { userAgent: profile.userAgent } : {}),
     });
-    this.contexts.set(viewport, context);
+    this.contexts.set(key, context);
     return context;
   }
 
-  async newPage(viewport: ViewportName): Promise<Page> {
-    const context = await this.contextFor(viewport);
+  async newPage(viewport: ViewportName, colorScheme: ColorScheme = 'light'): Promise<Page> {
+    const context = await this.contextFor(viewport, colorScheme);
     return context.newPage();
   }
 

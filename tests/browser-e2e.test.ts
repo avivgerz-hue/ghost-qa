@@ -33,7 +33,13 @@ const PIXEL = Buffer.from(
 
 const page = (title: string, body: string) =>
   `<!doctype html><html lang="en"><head><meta charset="utf-8">` +
-  `<meta name="viewport" content="width=device-width, initial-scale=1"><title>${title}</title></head>` +
+  `<meta name="viewport" content="width=device-width, initial-scale=1">` +
+  `<meta name="description" content="ghost-qa E2E fixture page for the 8-trap browser audit">` +
+  `<link rel="canonical" href="/">` +
+  `<meta property="og:title" content="${title}"><meta property="og:description" content="fixture">` +
+  `<meta property="og:image" content="/pixel.png">` +
+  `<style>button,a{display:inline-flex;align-items:center;min-height:44px;padding:0 12px}input{min-height:44px}</style>` +
+  `<title>${title}</title></head>` +
   `<body>${body}</body></html>`;
 
 let server: Server;

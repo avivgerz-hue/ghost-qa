@@ -1,18 +1,16 @@
 ---
 name: ghost-qa
-description: Verify frontend work in a real headless browser before reporting a task complete. Use after building or changing any UI, route, form, API integration, or client-side logic — crawls the running app on desktop and mobile, runs a 5-trap engine (console/hydration, network, layout, accessibility, performance), exercises interactive controls, and returns a self-healing bug report to fix from. Also usable via the ghost_qa_audit_url MCP tool.
+description: Verify frontend work in a real headless browser before reporting a task complete. The autonomous Staff QA Engineer protocol — doctor readiness, multi-viewport 8-Trap baseline audit (Desktop/Tablet/Mobile, light + dark), DOM-to-source root-cause mapping, surgical remediation, and closed-loop delta verification with ghost_qa_compare until QA Health Score is 95–100 (Grade A+). Use after building or changing any UI, route, form, API integration, or client-side logic.
 license: MIT
 ---
 
-# 👻 ghost-qa — Verify in Browser Before Done
+# 👻 ghost-qa — Autonomous Staff QA Engineer Protocol
 
-Coding agents write code blind. Code that type-checks can still ship with React hydration mismatches, uncaught exceptions, 500ing APIs, dead buttons, icon-only controls no screen reader can name, and mobile layouts that scroll sideways. **The browser is the source of truth — never your mental model of the DOM.**
+Coding agents write code blind. Code that type-checks can still ship with React hydration mismatches, uncaught exceptions, 500ing APIs, dead links, invisible dark-mode text, 30px tap targets, and mobile layouts that scroll sideways. **The browser is the source of truth — never your mental model of the DOM.**
 
-## The Rule
+> **The Rule:** Before reporting ANY task that touches frontend code as complete, you MUST execute all five phases below, in order, and finish with a verified delta: QA Health Score 95–100 (Grade A+ band), zero critical/major findings, zero new regressions.
 
-> Before reporting ANY task that touches frontend code as complete, you MUST run the app in a real browser with ghost-qa, fix everything blocking it catches, and re-run until it passes.
-
-Unit tests, type-checking, linting and code review do **not** satisfy this rule. They cannot see hydration, layout, network or accessibility failures.
+Unit tests, type-checking, linting and code review do **not** satisfy this rule. They cannot see hydration, layout, network, contrast or focus failures.
 
 ## When to use this skill
 
@@ -20,88 +18,91 @@ Unit tests, type-checking, linting and code review do **not** satisfy this rule.
 - ✅ You fixed a bug that manifested in the browser
 - ✅ You are about to tell the user a UI task is "done"
 
-**Not a substitute for:** your unit/E2E test suites, a full WCAG accessibility audit (ghost-qa's a11y trap covers common machine-checkable failures, not full WCAG conformance), load testing, or manual exploratory QA.
+**Not a substitute for:** your unit/E2E suites, a full manual WCAG audit (the a11y trap covers machine-checkable WCAG 2.1 AA failures), load testing, or exploratory QA.
 
-## Choose your path
+## The 8-Trap Deep Browser Inspection Engine
 
-| Situation | Command |
-| --- | --- |
-| Dev server already running | `npx -y ghost-qa test <url>` |
-| Server not running (most common) | `npx -y ghost-qa test <url> --server-cmd "npm run dev"` — ghost-qa spawns it, waits for it, audits, and kills the process tree afterward |
-| Your host exposes MCP tools | Call **`ghost_qa_audit_url`** with the URL (call `ghost_qa_doctor` first if it errors) — identical engine, identical report |
-| Mobile-only bug hunt | add `--viewport mobile` |
-| Large app | add `--max-depth 3 --max-routes 50` |
-| Evidence for a PR/CI | add `--report ghost-qa-report.md --html ghost-qa-report.html` |
+Every audit crawls each route on **Desktop 1440×900, Tablet 768×1024 and Mobile 375×812**, under **light + dark** colour schemes:
 
-> All commands use the published npm package (`npx -y ghost-qa …`). If npm is unavailable, `npx -y github:avivgerz-hue/ghost-qa …` runs the identical CLI straight from GitHub.
-
-Common local URLs: Next.js / CRA `http://localhost:3000`, Vite `http://localhost:5173`, Astro `http://localhost:4321`, Angular `http://localhost:4200`. If unsure, check the dev server output or `package.json` scripts — never guess silently; state the URL you verified in your completion message.
-
-## The Self-Healing Loop
-
-1. **Run the audit** (path table above). The 5-Trap Engine checks, on Desktop 1440×900 *and* Mobile 390×844:
-   - **Console** — uncaught errors, unhandled promise rejections, React hydration mismatches, `console.error`
-   - **Network** — HTTP 4xx/5xx, failed fetch/XHR, CORS failures, broken assets
-   - **Layout** — horizontal overflow, zero-size interactive elements, broken images, missing viewport meta
-   - **Accessibility** — buttons/links with no accessible name, images missing `alt`, inputs with no label, missing `<title>` / `<html lang>`
-   - **Performance** — slow loads, oversized assets/payloads, main-thread long-task jank, render-blocking resources, excessive DOM
-2. **Read the Self-Healing Bug Report.** Every issue has a stable `#id`, a severity (`critical` / `major` / `minor`), the route, and the viewport. Fix **critical and major** issues. Note minors; fix them when cheap.
-3. **Fix root causes in source** (fix guidance below). Reference issues by `#id` in your own narration so the user can follow along.
-4. **Re-run the identical command.** A fix that breaks a different route or viewport only shows up on re-run.
-5. **Repeat until `GHOST-QA PASS`.** If you have looped 5 times on the same `#id`, stop and report to the user what is stuck and why — do not silently give up or declare success.
-6. **Only then** report completion, using the completion template below.
-
-## Fix guidance per trap
-
-| Trap | Typical root causes | Fix like this |
+| # | Trap | What it catches |
 | --- | --- | --- |
-| Hydration mismatch | `Date.now()`/`Math.random()`/`window` during render, server/client branching, invalid HTML nesting (`<p>` in `<p>`, `<div>` in `<p>`) | Make server and client render identical markup; move time/random/client-only values into `useEffect` + state; fix the nesting |
-| Uncaught page error | undefined data, missing null checks on async data, bad imports | Reproduce via the stack trace in the report; guard the actual data path |
-| Console error | failed state updates, rejected promises, React warnings treated seriously by the app | Trace the first error, not the cascade after it |
-| HTTP 5xx | API route crash, bad env var, DB down | Read the server logs for that endpoint; the browser found it, the fix is server-side |
-| HTTP 404 / broken asset | wrong path, case-sensitivity, asset not emitted by the build | Compare the URL in the report with the actual build output / public dir |
-| CORS failure | API missing `Access-Control-Allow-Origin` for the page origin | Fix the API's CORS config (or the dev proxy), not the fetch call |
-| Horizontal overflow | `100vw` + scrollbar, fixed-width children, flex/grid children without `min-width: 0` | Constrain widths (`max-width: 100%`, `min-width: 0`, `overflow-wrap`); the report names the offending elements |
-| Zero-size interactive | collapsed CSS, `display: contents` misuse, content that never rendered | Restore a real, tappable size (≥ 24px, ideally ≥ 40px on mobile) |
-| No accessible name | icon-only `<button>`/`<a>` | Add visible text or `aria-label` describing the action/destination |
-| Missing `alt` | forgotten attribute | Descriptive alt; `alt=""` only if purely decorative |
-| Input without label | placeholder used as label | Real `<label for>`, wrapping `<label>`, or `aria-label` |
-| Slow load / oversized asset | unoptimized images, giant bundles, blocking scripts | Compress/lazy-load, `defer`/`async`, code-split; check the named resource first |
-| Long-task jank | heavy sync JS, layout reads in loops after writes | Break up work, memoize, batch DOM reads before writes |
+| 1 | Console & Framework Runtime | `pageerror`, `console.error`, unhandled rejections, React/Next.js hydration mismatches, duplicate-key warnings, CSP violations |
+| 2 | Network & Asset Integrity | 4xx/5xx, timed-out/aborted requests, failed CORS preflights, broken images (`naturalWidth === 0`), broken inline SVGs (0×0), >500KB unoptimized payloads |
+| 3 | Layout, Responsive Geometry & Collision | Horizontal overflow, overlapping interactive elements (bounding-box collision math), <44×44px touch targets, clipped text, off-screen interactives |
+| 4 | Accessibility (WCAG 2.1 AA) & Keyboard Focus | Missing accessible names/labels/alt, heading hierarchy breaks, real computed contrast ratios, automated Tab-order verification (invisible/dead focus) |
+| 5 | Performance & Core Web Vitals | TTFB, FCP, LCP, CLS, DOM bloat (>1500 nodes), DOM depth (>32), render-blocking scripts, long tasks |
+| 6 | Safe Interactive & Link Integrity | Placeholder hrefs (`""`, `#`, `javascript:void(0)`), dead anchors/routes, in-form buttons without `type`, stuck disabled controls |
+| 7 | SEO, Metadata & Social Graph | Title length, meta description, `<html lang>`, viewport meta, canonical, OpenGraph set, duplicate `id`s |
+| 8 | Dark / Light Theme Emulation | Contrast/visibility recomputed under `colorScheme: light` and `dark` — catches invisible dark-mode text |
 
-## Anti-cheating rules (this is the point of the skill)
+Scoring is deterministic: each trap starts at 100, −25 per critical, −10 per major, −3 per minor. The **QA Health Score** is the mean of the 8 trap scores, graded **A+ (97+) … F (<60)**.
 
-- ❌ Never silence the checker: no deleting the failing UI, no blanket `try/catch`, no `suppressHydrationWarning`, no removing the code path "so the error goes away"
-- ❌ Never use `--no-interactions` or narrow `--viewport`/`--max-depth` to hide failures (legitimate only when a page has side-effectful controls, and you must say so)
-- ❌ Never edit ghost-qa's report, thresholds, or your project's ghost-qa invocation to manufacture a PASS
-- ✅ If a finding is a genuine false positive, say so explicitly in your completion message with the `#id` and why — a human can overrule the tool; you may not quietly ignore it
+---
 
-## Safety guarantees you can rely on
+## Phase 1 — Environment & Server Readiness (`ghost_qa_doctor`)
 
-ghost-qa never clicks destructive controls (delete, checkout, pay, logout, publish, sign-in…), never submits real orders/payments, fills forms only with inert data (`ghost-qa@example.com`, `ghost-qa test`), stays on same-origin links, and is designed for localhost/dev servers. **Do not point it at production systems you do not own or have permission to test.** Pages behind authentication will typically redirect to a login page — ghost-qa will audit what an anonymous visitor sees; say so if that's what happened.
+1. Call the **`ghost_qa_doctor`** MCP tool, or run `npx -y ghost-qa doctor`.
+2. It must report **READY**: Node ≥ 20, Chromium installed, live browser smoke test passing.
+3. If Chromium is missing: `npx playwright install chromium` (one-time), then re-run doctor. **Never skip to Phase 2 on a red doctor** — a failed launch is not a passing audit.
+4. Start the app (`npm run dev`) or plan to use `--server-cmd "npm run dev"` / let the audit spawn it.
+
+## Phase 2 — Multi-Viewport 8-Trap Baseline Audit (`ghost_qa_audit_url`)
+
+Run the baseline BEFORE changing code (or before your fix, when debugging):
+
+- MCP: call **`ghost_qa_audit_url`** with the app URL. Save the full returned report JSON as **`before.json`**.
+- CLI equivalent: `npx -y ghost-qa test <local-url> --out-dir ghost-qa-out` → writes `report.json` (copy to `before.json`), `GHOST-QA-REPORT.md`, `PATCH-PROMPT.md`, and the interactive `report.html` dashboard. Add `--screenshots` for embedded route screenshots; `--server-cmd "npm run dev"` if the server isn't running.
+
+Record the baseline: **QA Health Score, grade, per-trap scores, and every finding's `#id`.** Common local URLs: Next.js/CRA `http://localhost:3000`, Vite `http://localhost:5173`, Astro `http://localhost:4321`, Angular `http://localhost:4200`. Never guess silently — state the URL you verified.
+
+## Phase 3 — DOM-to-Source Root-Cause Mapping
+
+For every critical/major finding, trace it back to the exact source component before editing:
+
+- **Exact selectors:** findings carry `#id`, `[data-testid=…]`, or a CSS path, plus the live **bounding box**. Search the codebase for that id/testid/class or the element's visible text to find the React/Next.js/Vue/Svelte component that renders it.
+- **Collisions/overflow:** the two colliding selectors + boxes tell you which siblings overlap — inspect their flex/grid/absolute layout in that component, on the failing viewport.
+- **Console stacks:** follow the first app-owned stack frames to the throwing component/effect. Hydration mismatches mean server and client rendered different markup (Date/random/`window` at render, invalid nesting like `<p>` in `<p>`).
+- **Dark-mode contrast:** a `theme-contrast` finding names the scheme that fails — find the hard-coded colour in that component and replace it with the theme token.
+- **Network:** map the failing URL to its route handler/client fetch; 5xx is server code, CORS preflight is API config.
+
+Write the mapping down (finding `#id` → file → root cause) before Phase 4. If you cannot map a finding, say so — do not guess-fix.
+
+## Phase 4 — Surgical Code Remediation
+
+Fix root causes, one finding at a time, in severity order (critical → major → minor):
+
+- **Hydration:** identical server/client markup; defer client-only values to effects; fix invalid HTML nesting. Never `suppressHydrationWarning` to silence it.
+- **Responsive geometry:** `min-width: 0` on flex/grid children, `max-width: 100%`, no `100vw` + scrollbar overflow, reserve image space with width/height or `aspect-ratio` (also fixes CLS).
+- **Tap targets:** every touch target ≥ 44×44px (padding or min-height/min-width).
+- **ARIA/labels:** visible text or `aria-label` on icon controls, `<label for>` (or wrapping label) per input, `alt` on images (`alt=""` only if decorative), one `<h1>`, no heading level skips, visible `:focus-visible` rings — never `outline: none` without a replacement.
+- **Dark-mode tokens:** CSS variables / `dark:` variants driven by `prefers-color-scheme` or the app theme — never hard-coded hex that only works in one scheme.
+- **Links/forms:** real hrefs or `<button type="button">`; dead anchors get real targets; in-form buttons get explicit `type`.
+- **Performance:** defer/async non-critical scripts, compress/resize/lazy-load >500KB assets, code-split, break up long tasks.
+
+**Anti-cheating rules (absolute):** never delete failing UI, never loosen the checker, never hide elements from the traps, never stub network responses. Fixing the checker instead of the bug is a failed task.
+
+## Phase 5 — Closed-Loop Delta Verification (`ghost_qa_compare`)
+
+1. Re-run the identical audit (same URL/viewports) → save as **`after.json`**.
+2. Compare: MCP **`ghost_qa_compare`** with `{ before, after }`, or `npx -y ghost-qa compare before.json after.json`.
+3. Read the **Regression & Verification Delta Report**: `scoreDelta`, `fixedFindings`, `newRegressions`, `remainingFindings`.
+4. **Done only when ALL hold:** QA Health Score **95–100 (Grade A+ band)** · zero critical/major remaining · **zero new regressions** (`verified: true`). Otherwise loop back to Phase 3 with the delta as your new worklist.
+5. If the same `#id` survives 5 loops, stop and report honestly what you tried — never declare success on a red delta.
+
+## Completion report (required format)
+
+> ✅ Done. Verified in a real browser with ghost-qa: `ghost_qa_audit_url` on `<url>`
+> Stack: Desktop 1440×900 + Tablet 768×1024 + Mobile 375×812, light + dark, 8 traps
+> QA Health Score: `<before>` → `<after>` (Grade `<grade>`) · Delta: `<n>` fixed, 0 new regressions
+> Routes crawled: `<n>` · Interactions tested: `<n>` · Artifacts: `report.json`, `GHOST-QA-REPORT.md`, `PATCH-PROMPT.md`, `report.html`
 
 ## Troubleshooting
 
-| Symptom | Do this |
+| Symptom | Fix |
 | --- | --- |
 | "could not launch Chromium" | `npx playwright install chromium` (one-time), then `npx -y ghost-qa doctor` |
-| `navigation-failed` on every route | Server isn't on that URL/port — start it, or re-run with `--server-cmd "npm run dev"` |
-| Everything 404s | Wrong port or base path — confirm the URL in a browser/`curl` yourself first |
-| Audit seems to test a login page | The app requires auth for those routes; report that limitation instead of claiming full verification |
-| Perf findings vary between runs | Machine load affects timings; re-run once before treating a borderline perf major as real |
-| MCP tool unavailable | Fall back to the CLI — the audit engine and report are identical |
+| Navigation failures on every route | The dev server isn't running (or wrong port) — start it, or use `--server-cmd "npm run dev"` |
+| Score stuck below 95 | Work the delta's remaining findings by severity; re-check Phase 3 mapping before editing |
+| A trap flags a healthy page | File an issue with `report.json` attached — false positives are the most valuable bug reports |
 
-## Completion template
-
-When the final run passes, report completion like this:
-
-> ✅ Done. Verified in a real browser with ghost-qa: `npx -y ghost-qa test <url>` → **GHOST-QA PASS**
-> Routes crawled: N · Interactions tested: N · Issues fixed this session: (list `#id`s, or "none found")
-> Stack: desktop 1440×900 + mobile 390×844, 5 traps (console, network, layout, accessibility, performance)
-
-## Completion checklist
-
-- [ ] Final code state audited (not an earlier draft of the change)
-- [ ] All critical/major issues fixed at the root cause, or explicitly reported as false positives with reasoning
-- [ ] Final run prints `GHOST-QA PASS`
-- [ ] Completion message uses the template above and names the URL verified
+> All commands use the published npm package (`npx -y ghost-qa …`). If npm is unavailable, `npx -y github:avivgerz-hue/ghost-qa …` runs the identical CLI straight from GitHub.

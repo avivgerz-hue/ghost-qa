@@ -1,6 +1,8 @@
 import type { Page } from 'playwright';
 import { type QAIssue, type ViewportName } from '../types.js';
-export type ConsoleClassification = 'hydration-mismatch' | 'unhandled-rejection' | 'page-error' | 'console-error' | 'console-warning' | 'benign';
+export type ConsoleClassification = 'hydration-mismatch' | 'unhandled-rejection' | 'duplicate-key-warning' | 'csp-violation' | 'page-error' | 'console-error' | 'console-warning' | 'benign';
+export declare function isDuplicateKeyWarning(text: string): boolean;
+export declare function isCspViolation(text: string): boolean;
 export declare function isHydrationError(text: string): boolean;
 export declare function isUnhandledRejection(text: string): boolean;
 export declare function isBenignConsoleNoise(text: string): boolean;

@@ -10,6 +10,12 @@ export declare const FIX_PLAYBOOK: Record<IssueCategory, string>;
  * fix playbook line per category, then the re-verify command.
  */
 export declare function formatAgentDiagnostic(report: GhostQAReport): string;
+/**
+ * PATCH-PROMPT.md — copy-paste remediation instructions for a coding agent:
+ * every finding with its exact DOM selector, bounding box, root-cause hint
+ * and the closed-loop compare protocol to prove the fix.
+ */
+export declare function formatPatchPrompt(report: GhostQAReport): string;
 /** Structured JSON for CI gates and programmatic agent tooling. */
 export declare function formatAgentDiagnosticJson(report: GhostQAReport): string;
 export type DiagnosticFormat = 'markdown' | 'json';

@@ -8,10 +8,19 @@ export const VIEWPORT_PROFILES = {
         hasTouch: false,
         deviceScaleFactor: 1,
     },
+    tablet: {
+        name: 'tablet',
+        width: 768,
+        height: 1024,
+        isMobile: false,
+        hasTouch: true,
+        deviceScaleFactor: 2,
+        userAgent: 'Mozilla/5.0 (iPad; CPU OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15',
+    },
     mobile: {
         name: 'mobile',
-        width: 390,
-        height: 844,
+        width: 375,
+        height: 812,
         isMobile: true,
         hasTouch: true,
         deviceScaleFactor: 3,
@@ -58,10 +67,11 @@ export class BrowserSession {
     get isLaunched() {
         return this.browser !== null;
     }
-    async contextFor(viewport) {
+    async contextFor(viewport, colorScheme = 'light') {
         if (!this.browser)
             await this.launch();
-        const existing = this.contexts.get(viewport);
+        const key = `${viewport}:${colorScheme}`;
+        const existing = this.contexts.get(key);
         if (existing)
             return existing;
         const profile = VIEWPORT_PROFILES[viewport];
@@ -70,13 +80,14 @@ export class BrowserSession {
             isMobile: profile.isMobile,
             hasTouch: profile.hasTouch,
             deviceScaleFactor: profile.deviceScaleFactor,
+            colorScheme,
             ...(profile.userAgent ? { userAgent: profile.userAgent } : {}),
         });
-        this.contexts.set(viewport, context);
+        this.contexts.set(key, context);
         return context;
     }
-    async newPage(viewport) {
-        const context = await this.contextFor(viewport);
+    async newPage(viewport, colorScheme = 'light') {
+        const context = await this.contextFor(viewport, colorScheme);
         return context.newPage();
     }
     async close() {

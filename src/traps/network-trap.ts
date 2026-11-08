@@ -65,6 +65,10 @@ export function evaluateHttpResponse(
   });
 }
 
+export function isTimeoutFailure(errorText: string): boolean {
+  return /ERR_TIMED_OUT|ERR_CONNECTION_TIMED_OUT|ERR_NETWORK_CHANGED|timeout/i.test(errorText);
+}
+
 /** Pure evaluator for a request that never completed (DNS, CORS, abort…). */
 export function evaluateRequestFailure(
   errorText: string,
@@ -72,9 +76,36 @@ export function evaluateRequestFailure(
   route: string,
   viewport: ViewportName,
   resourceType = 'xhr',
+  extras: { preflight?: boolean } = {},
 ): QAIssue | null {
   // Aborted requests are usually the crawler navigating away — not a bug.
   if (/ERR_ABORTED/i.test(errorText)) return null;
+
+  if (extras.preflight || /preflight/i.test(errorText)) {
+    return makeIssue({
+      category: 'network',
+      severity: 'critical',
+      type: 'cors-preflight-failed',
+      message: `CORS preflight failed: ${shortUrl(url)} (${errorText}). The API must answer OPTIONS with Access-Control-Allow-Origin/Methods/Headers for this origin.`,
+      route,
+      viewport,
+      url,
+      details: { errorText, resourceType },
+    });
+  }
+
+  if (isTimeoutFailure(errorText)) {
+    return makeIssue({
+      category: 'network',
+      severity: 'major',
+      type: 'request-timeout',
+      message: `Request timed out (${resourceType}): ${shortUrl(url)} — ${errorText}. Check server latency, hanging middleware, and client timeout/retry policy.`,
+      route,
+      viewport,
+      url,
+      details: { errorText, resourceType },
+    });
+  }
 
   if (isCorsFailure(errorText)) {
     return makeIssue({
@@ -152,6 +183,7 @@ export class NetworkTrap {
         this.route,
         this.viewport,
         request.resourceType(),
+        { preflight: request.method() === 'OPTIONS' },
       );
       if (issue) this.issues.push(issue);
     });

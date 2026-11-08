@@ -7,12 +7,12 @@
     "url": "https://github.com/avivgerz-hue/ghost-qa",
     "source": "github"
   },
-  "version": "1.3.1",
+  "version": "2.0.0",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "ghost-qa",
-      "version": "1.3.1",
+      "version": "2.0.0",
       "runtimeHint": "npx",
       "runtimeArguments": [
         {
@@ -38,7 +38,7 @@
   "tools": [
     {
       "name": "ghost_qa_audit_url",
-      "description": "Run the full ghost-qa headless browser audit against a running localhost app: crawls internal routes on Desktop 1440x900 and Mobile 390x844, safely exercises interactive controls, and traps console/hydration errors, failed network requests, layout overflow, accessibility bugs and performance problems. Returns the Self-Healing Bug Report \u2014 fix every critical/major issue it reports before declaring the task done.",
+      "description": "Run the full ghost-qa Deep Browser Inspection against a running localhost app: crawls internal routes on Desktop 1440x900, Tablet 768x1024 and Mobile 375x812 under light + dark colour schemes, safely exercises interactive controls, and runs the 8-Trap Engine (console/framework runtime, network/asset integrity, layout/geometry/collision, WCAG accessibility + keyboard focus, Core Web Vitals performance, link integrity, SEO/metadata, theme parity). Returns the Self-Healing Bug Report plus QA Health Score (0-100, grade A+ to F).",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -57,15 +57,38 @@
           "viewport": {
             "type": "string",
             "enum": [
-              "both",
+              "all",
               "desktop",
+              "tablet",
               "mobile"
             ],
-            "description": "Viewports to test (default both)"
+            "description": "Viewports to test (default all)"
           }
         },
         "required": [
           "url"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "ghost_qa_compare",
+      "description": "Compare two ghost-qa JSON reports and return the Regression & Verification Delta Report: scoreDelta, fixedFindings, newRegressions, remainingFindings. Proves a fix resolved the bug without introducing regressions; verified only at QA Health Score >= 95 with zero regressions.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "before": {
+            "type": "object",
+            "description": "Baseline ghost-qa report JSON (before fixes)"
+          },
+          "after": {
+            "type": "object",
+            "description": "New ghost-qa report JSON (after fixes)"
+          }
+        },
+        "required": [
+          "before",
+          "after"
         ],
         "additionalProperties": false
       }

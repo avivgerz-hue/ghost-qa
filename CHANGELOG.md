@@ -2,6 +2,20 @@
 
 All notable changes to ghost-qa are documented here. Format follows [Keep a Changelog](https://keepachangelog.com), versions follow [SemVer](https://semver.org).
 
+## [2.0.0] — 2026-11-08
+
+### Added
+- **8-Trap Deep Browser Inspection Engine** (was 5 traps): new Safe Interactive & Link Integrity, SEO/Metadata & Social Graph, and Dark/Light Theme Emulation traps; existing traps deepened — duplicate-key + CSP detection (console), timeouts + CORS preflights + broken SVGs + >500KB payloads (network), bounding-box collision math, 44×44 touch targets, clipped text, off-screen interactives (layout), real computed WCAG contrast, heading hierarchy, automated Tab-order focus verification (a11y), and TTFB/FCP/LCP/CLS + DOM depth (performance).
+- **3 viewports × 2 colour schemes**: Desktop 1440×900, Tablet 768×1024, Mobile 375×812 (replaces 390×844), each in light + dark emulation. Findings carry exact DOM selectors, bounding boxes and colour scheme.
+- **QA Health Score (0–100, Grade A+…F)** with deterministic per-trap sub-scores, in CLI output, JSON, MCP structured content and reports.
+- **Artifact bundle** via `--out-dir`: `report.json`, `GHOST-QA-REPORT.md`, `PATCH-PROMPT.md`, and an interactive self-contained `report.html` dashboard (grade hero, 8-Trap Scorecard, Route & Viewport Matrix, filterable findings, optional `--screenshots` embeds).
+- **Regression diffing**: `ghost-qa compare <before.json> <after.json>` CLI and `ghost_qa_compare` MCP tool produce the Regression & Verification Delta Report (`scoreDelta`, `fixedFindings`, `newRegressions`, `remainingFindings`).
+- `SKILL.md` rewritten as the 5-phase Autonomous Staff QA Engineer Protocol (doctor → baseline → DOM-to-source mapping → remediation → delta verification until 95–100/A+).
+
+### Changed
+- **Version is now loaded dynamically from `package.json`** (`src/engine/version.ts`, fallback `2.0.0`) so `--version` can never lag a publish again.
+- Default viewports are now `desktop + tablet + mobile` (`--viewport both` keeps the legacy desktop+mobile pair); Mobile profile is 375×812.
+
 ## [1.3.1] — 2026-11-08
 
 ### Added

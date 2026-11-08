@@ -53,7 +53,7 @@ describe('MCP registry manifests (smithery / glama / official registry)', () => 
     expect(packages[0]?.packageArguments[0]?.value).toBe('ghost-qa');
 
     const tools = server.tools as ManifestTool[];
-    expect(tools.map((t) => t.name)).toEqual(['ghost_qa_audit_url', 'ghost_qa_doctor']);
+    expect(tools.map((t) => t.name)).toEqual(['ghost_qa_audit_url', 'ghost_qa_compare', 'ghost_qa_doctor']);
     for (const tool of tools) {
       expect(tool.description.length).toBeGreaterThan(40);
       expect(tool.inputSchema.type).toBe('object');
@@ -94,9 +94,10 @@ describe('MCP registry manifests (smithery / glama / official registry)', () => 
   it('embeds the SVG terminal hero in the README below the badges', () => {
     const svg = readText('assets/hero-terminal.svg');
     expect(svg).toContain('<svg');
-    expect(svg).toContain('5-TRAP ENGINE');
+    expect(svg).toContain('8-TRAP ENGINE');
+    expect(svg).toContain('768×1024');
     expect(svg).toContain('1440×900');
-    expect(svg).toContain('390×844');
+    expect(svg).toContain('375×812');
     expect(svg).toContain('hydration');
     expect(svg).toContain('Self-Healing Bug Report');
     expect(readText('README.md')).toContain('![ghost-qa terminal preview](./assets/hero-terminal.svg)');

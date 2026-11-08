@@ -6,7 +6,8 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { runGhostQAAudit, GHOST_QA_VERSION } from '../src/engine/audit-runner.js';
 import { ManagedDevServer } from '../src/engine/server-lifecycle.js';
 import { mcpServerConfig, runDoctorCheck, startMcpServer } from '../src/mcp/server.js';
-import { formatAgentDiagnostic, formatDiagnostic } from '../src/reporter/agent-diagnostic.js';
+import { compareReports, formatCompareReport } from '../src/engine/compare.js';
+import { formatAgentDiagnostic, formatDiagnostic, formatPatchPrompt } from '../src/reporter/agent-diagnostic.js';
 import { formatHtmlReport } from '../src/reporter/html-report.js';
 import { formatTerminalSummary } from '../src/reporter/terminal-summary.js';
 import { DEFAULT_OPTIONS, type GhostQAOptions } from '../src/types.js';
@@ -19,12 +20,13 @@ const PROTOCOL_END = '<!-- ghost-qa:end -->';
 export const AGENT_PROTOCOL = `${PROTOCOL_START}
 ## 👻 ghost-qa — Browser Verification Protocol (MANDATORY)
 
-Before reporting any task that touches frontend code as complete, you MUST verify it in a real browser:
+Before reporting any task that touches frontend code as complete, you MUST verify it in a real browser — the closed-loop Self-Healing Browser Verification Protocol:
 
-1. Ensure the app is running locally (e.g. \`npm run dev\`).
-2. Run: \`npx -y ghost-qa test <local-url>\` (e.g. \`npx -y ghost-qa test http://localhost:3000\`) — or call the \`ghost_qa_audit_url\` MCP tool if your host exposes it. Add \`--server-cmd "npm run dev"\` to let ghost-qa manage the dev server itself.
-3. If ghost-qa reports ANY critical or major issue (hydration errors, console errors, 4xx/5xx responses, mobile overflow, accessibility or performance failures, broken interactions), fix the root cause in source and re-run.
-4. Repeat until ghost-qa prints **PASS**. Only then may you tell the user the task is done.
+1. **Readiness:** run \`ghost-qa doctor\` (or the \`ghost_qa_doctor\` MCP tool). Do not proceed on red.
+2. **Baseline audit:** ensure the app runs locally, then \`npx -y ghost-qa test <local-url> --out-dir ghost-qa-out\` (add \`--server-cmd "npm run dev"\` to let ghost-qa manage the server) — or call \`ghost_qa_audit_url\`. This runs the 8-Trap Engine on Desktop 1440×900, Tablet 768×1024 and Mobile 375×812, light + dark. Save the baseline as \`before.json\` (it is \`ghost-qa-out/report.json\`).
+3. **Root-cause mapping:** for every critical/major finding, map the exact DOM selector, bounding box, stack trace or dark-mode contrast failure back to the component file that renders it.
+4. **Surgical remediation:** fix root causes in source (hydration, overflow, tap targets, ARIA/labels, dark-mode tokens…). Never silence the checker or delete failing UI.
+5. **Delta verification:** re-run the audit to \`after.json\`, then \`npx -y ghost-qa compare before.json after.json\` (or \`ghost_qa_compare\`). Repeat until QA Health Score is **95–100 (A+)**, zero critical/major remain, and the delta shows **zero new regressions**. Only then report done, citing score, routes, viewports and the delta.
 
 Never declare a UI task finished based only on code review, type-checking, or unit tests. The browser is the source of truth.
 ${PROTOCOL_END}`;
@@ -39,12 +41,12 @@ You are a coding agent. Never report a frontend task complete without running it
    - Server already running: \`npx -y ghost-qa test <local-url>\`
    - Otherwise: \`npx -y ghost-qa test <local-url> --server-cmd "npm run dev"\` (ghost-qa spawns, awaits and tears down the server)
    - Or call the \`ghost_qa_audit_url\` MCP tool if your host exposes it (identical engine).
-   It crawls routes on Desktop 1440x900 + Mobile 390x844 and runs the 5-Trap Engine: console/hydration, network, layout, accessibility, performance — plus safe interaction testing (never destructive controls).
-2. Read the Self-Healing Bug Report. Fix every critical/major issue by \`#id\`, at the root cause in source — never silence the checker, delete failing UI, or add suppressHydrationWarning.
-3. Re-run the identical command until it prints \`GHOST-QA PASS\`. If stuck on the same \`#id\` after 5 loops, report that honestly instead of declaring success.
-4. Only then report completion, naming the URL verified, routes crawled, interactions tested, and issues fixed.
+   It crawls routes on Desktop 1440×900 + Tablet 768×1024 + Mobile 375×812 (light + dark) and runs the 8-Trap Engine: console/framework runtime, network/asset integrity, layout/geometry/collision, WCAG a11y + keyboard focus, Core Web Vitals, link integrity, SEO/metadata, theme parity — plus safe interaction testing (never destructive controls). Save the baseline JSON as before.json.
+2. Read the Self-Healing Bug Report (GHOST-QA-REPORT.md) and PATCH-PROMPT.md. Map each selector/bounding box/stack to the component that renders it; fix every critical/major issue by \`#id\`, at the root cause in source — never silence the checker, delete failing UI, or add suppressHydrationWarning.
+3. Re-audit to after.json, then run \`npx -y ghost-qa compare before.json after.json\` (or \`ghost_qa_compare\`). Repeat until QA Health Score is 95–100 (A+), zero critical/major remain and the delta shows zero new regressions. If stuck on the same \`#id\` after 5 loops, report that honestly instead of declaring success.
+4. Only then report completion, naming the URL verified, routes crawled, interactions tested, score/grade and issues fixed.
 
-Useful flags: \`--max-depth\`, \`--max-routes\`, \`--viewport mobile\`, \`--json\`, \`--report <file>\`, \`--html <file>\`, \`--fail-on minor\`.
+Useful flags: \`--max-depth\`, \`--max-routes\`, \`--viewport mobile\`, \`--color-scheme dark\`, \`--screenshots\`, \`--out-dir ghost-qa-out\`, \`--json\`, \`--report <file>\`, \`--html <file>\`, \`--fail-on minor\`.
 If Chromium is missing: \`npx playwright install chromium\`, then \`npx -y ghost-qa doctor\`.
 Full skill: https://github.com/avivgerz-hue/ghost-qa/blob/main/SKILL.md
 `;
@@ -54,6 +56,8 @@ const HELP = `
 
 Usage:
   ghost-qa test <url> [options]    Crawl a running app and trap browser failures
+  ghost-qa compare <before.json> <after.json> [--json]
+                                   Regression & Verification Delta Report
   ghost-qa init [--force]          Install the agent skill, protocol + MCP config
   ghost-qa mcp                     Run the native MCP server (JSON-RPC over stdio)
   ghost-qa doctor                  Check Node, Playwright and Chromium setup
@@ -63,7 +67,11 @@ test options:
   --max-depth <n>        Link-following depth from the start URL (default ${DEFAULT_OPTIONS.maxDepth})
   --max-routes <n>       Maximum routes to visit (default ${DEFAULT_OPTIONS.maxRoutes})
   --timeout <ms>         Per-navigation timeout (default ${DEFAULT_OPTIONS.timeoutMs})
-  --viewport <name>      both | desktop | mobile (default both)
+  --viewport <name>      all | desktop | tablet | mobile | both (default all)
+  --color-scheme <name>  both | light | dark (default both)
+  --screenshots          Capture route screenshots for the HTML dashboard
+  --out-dir <dir>        Write report.json + GHOST-QA-REPORT.md +
+                         PATCH-PROMPT.md + report.html into this directory
   --no-interactions      Only load pages; do not click/fill anything
   --headed               Show the browser window (debugging)
   --fail-on <severity>   Fail on critical | major | minor (default ${DEFAULT_OPTIONS.failOn})
@@ -79,7 +87,9 @@ Examples:
   npx -y ghost-qa test http://localhost:3000
   npx -y ghost-qa test http://localhost:3000 --server-cmd "npm run dev"
   npx -y ghost-qa test http://localhost:5173 --max-depth 3 --html ghost-qa-report.html
-  npx -y ghost-qa test http://localhost:3000 --json > report.json
+  npx -y ghost-qa test http://localhost:3000 --out-dir ghost-qa-out --screenshots
+  npx -y ghost-qa test http://localhost:3000 --json > before.json
+  npx -y ghost-qa compare before.json after.json
   npx -y ghost-qa init
   npx -y ghost-qa mcp
 
@@ -110,6 +120,7 @@ export interface ParsedTestArgs {
   quiet: boolean;
   reportFile?: string;
   htmlFile?: string;
+  outDir?: string;
   serverCmd?: string;
   serverTimeoutMs: number;
 }
@@ -121,6 +132,7 @@ export function parseTestArgs(args: string[]): ParsedTestArgs {
   let quiet = false;
   let reportFile: string | undefined;
   let htmlFile: string | undefined;
+  let outDir: string | undefined;
   let serverCmd: string | undefined;
   let serverTimeoutMs = 30_000;
 
@@ -138,11 +150,26 @@ export function parseTestArgs(args: string[]): ParsedTestArgs {
         break;
       case '--viewport': {
         const value = args[++i];
-        if (value === 'desktop' || value === 'mobile') options.viewports = [value];
+        if (value === 'desktop' || value === 'tablet' || value === 'mobile') options.viewports = [value];
         else if (value === 'both') options.viewports = ['desktop', 'mobile'];
-        else throw new Error(`--viewport expects both|desktop|mobile, got "${value ?? ''}"`);
+        else if (value === 'all') options.viewports = ['desktop', 'tablet', 'mobile'];
+        else throw new Error(`--viewport expects all|both|desktop|tablet|mobile, got "${value ?? ''}"`);
         break;
       }
+      case '--color-scheme': {
+        const value = args[++i];
+        if (value === 'light' || value === 'dark') options.colorSchemes = [value];
+        else if (value === 'both') options.colorSchemes = ['light', 'dark'];
+        else throw new Error(`--color-scheme expects both|light|dark, got "${value ?? ''}"`);
+        break;
+      }
+      case '--screenshots':
+        options.screenshots = true;
+        break;
+      case '--out-dir':
+        outDir = args[++i];
+        if (!outDir) throw new Error('--out-dir expects a directory path');
+        break;
       case '--no-interactions':
         options.interactions = false;
         break;
@@ -191,8 +218,59 @@ export function parseTestArgs(args: string[]): ParsedTestArgs {
     serverTimeoutMs,
     ...(reportFile ? { reportFile } : {}),
     ...(htmlFile ? { htmlFile } : {}),
+    ...(outDir ? { outDir } : {}),
     ...(serverCmd ? { serverCmd } : {}),
   };
+}
+
+export interface ParsedCompareArgs {
+  beforeFile: string;
+  afterFile: string;
+  json: boolean;
+  outFile?: string;
+}
+
+export function parseCompareArgs(args: string[]): ParsedCompareArgs {
+  const files: string[] = [];
+  let json = false;
+  let outFile: string | undefined;
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i]!;
+    if (arg === '--json') json = true;
+    else if (arg === '--out') {
+      outFile = args[++i];
+      if (!outFile) throw new Error('--out expects a file path');
+    } else if (arg.startsWith('--')) throw new Error(`Unknown flag: ${arg}`);
+    else files.push(arg);
+  }
+  if (files.length !== 2) {
+    throw new Error('Usage: ghost-qa compare <before.json> <after.json> [--json] [--out <file>]');
+  }
+  return { beforeFile: files[0]!, afterFile: files[1]!, json, ...(outFile ? { outFile } : {}) };
+}
+
+async function runCompare(args: string[]): Promise<number> {
+  const parsed = parseCompareArgs(args);
+  const load = async (file: string) => {
+    const parsedJson: unknown = JSON.parse(await readFile(resolve(file), 'utf8'));
+    if (
+      typeof parsedJson !== 'object' ||
+      parsedJson === null ||
+      !Array.isArray((parsedJson as { issues?: unknown }).issues)
+    ) {
+      throw new Error(`${file} is not a ghost-qa report JSON (missing issues array)`);
+    }
+    return parsedJson as Parameters<typeof compareReports>[0];
+  };
+  const delta = compareReports(await load(parsed.beforeFile), await load(parsed.afterFile));
+  const rendered = parsed.json ? `${JSON.stringify(delta, null, 2)}\n` : formatCompareReport(delta);
+  if (parsed.outFile) {
+    await writeFile(resolve(parsed.outFile), rendered, 'utf8');
+    process.stdout.write(`Delta report written to ${parsed.outFile}\n`);
+  } else {
+    process.stdout.write(rendered);
+  }
+  return delta.newRegressions.length > 0 ? 1 : 0;
 }
 
 async function executeTest(parsed: ParsedTestArgs) {
@@ -320,7 +398,7 @@ async function runInit(args: string[]): Promise<number> {
   }
   process.stdout.write(
     '\nYour coding agent will now run `npx -y ghost-qa test <local-url>` and fix browser failures before reporting a task complete.\n' +
-      'MCP hosts (Claude Code, Claude Desktop, Cursor, Codex) can also call the ghost_qa_audit_url / ghost_qa_doctor tools directly via the .mcp.json entry above.\n',
+      'MCP hosts (Claude Code, Claude Desktop, Cursor, Codex) can also call the ghost_qa_audit_url / ghost_qa_doctor / ghost_qa_compare tools directly via the .mcp.json entry above.\n',
   );
   return 0;
 }
@@ -360,6 +438,17 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
         if (parsed.htmlFile) {
           await writeFile(resolve(parsed.htmlFile), formatHtmlReport(report), 'utf8');
         }
+        if (parsed.outDir) {
+          const dir = resolve(parsed.outDir);
+          await mkdir(dir, { recursive: true });
+          await writeFile(join(dir, 'report.json'), `${JSON.stringify(report, null, 2)}\n`, 'utf8');
+          await writeFile(join(dir, 'GHOST-QA-REPORT.md'), `${formatAgentDiagnostic(report)}\n`, 'utf8');
+          await writeFile(join(dir, 'PATCH-PROMPT.md'), formatPatchPrompt(report), 'utf8');
+          await writeFile(join(dir, 'report.html'), formatHtmlReport(report), 'utf8');
+          if (!parsed.quiet) {
+            process.stdout.write(`Artifacts written to ${parsed.outDir}/ (report.json, GHOST-QA-REPORT.md, PATCH-PROMPT.md, report.html)\n`);
+          }
+        }
         if (parsed.json) {
           process.stdout.write(formatDiagnostic(report, 'json'));
         } else if (!parsed.quiet) {
@@ -372,6 +461,8 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
         }
         return report.passed ? 0 : 1;
       }
+      case 'compare':
+        return await runCompare(rest);
       case 'mcp':
         await startMcpServer();
         return 0;

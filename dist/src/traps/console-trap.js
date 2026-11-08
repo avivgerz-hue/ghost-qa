@@ -1,4 +1,21 @@
 import { makeIssue } from '../types.js';
+const DUPLICATE_KEY_PATTERNS = [
+    /encountered two children with the same key/i,
+    /duplicate key/i,
+    /same key.*twice/i,
+];
+const CSP_PATTERNS = [
+    /content security policy/i,
+    /violates the following content security policy/i,
+    /refused to .* because it violates/i,
+    /CSP violation/i,
+];
+export function isDuplicateKeyWarning(text) {
+    return DUPLICATE_KEY_PATTERNS.some((p) => p.test(text));
+}
+export function isCspViolation(text) {
+    return CSP_PATTERNS.some((p) => p.test(text));
+}
 const HYDRATION_PATTERNS = [
     /hydration/i,
     /did not match/i,
@@ -45,6 +62,10 @@ export function classifyConsoleText(text, source = 'console-error') {
         return 'hydration-mismatch';
     if (isUnhandledRejection(text))
         return 'unhandled-rejection';
+    if (isDuplicateKeyWarning(text))
+        return 'duplicate-key-warning';
+    if (isCspViolation(text))
+        return 'csp-violation';
     if (source === 'pageerror')
         return 'page-error';
     if (source === 'console-warning')
@@ -83,6 +104,26 @@ export function consoleIssueFromText(text, route, viewport, source = 'console-er
                 severity: 'critical',
                 type: 'page-error',
                 message: `Uncaught page error: ${clean}`,
+                route,
+                viewport,
+                ...(stack ? { stack: stack.slice(0, 2000) } : {}),
+            });
+        case 'duplicate-key-warning':
+            return makeIssue({
+                category: 'console',
+                severity: 'major',
+                type: 'duplicate-key-warning',
+                message: `React duplicate key warning: ${clean} Duplicate keys break reconciliation — keyed children can swap state, replay animations, or drop updates. Use a stable unique id per item.`,
+                route,
+                viewport,
+                ...(stack ? { stack: stack.slice(0, 2000) } : {}),
+            });
+        case 'csp-violation':
+            return makeIssue({
+                category: 'console',
+                severity: 'major',
+                type: 'csp-violation',
+                message: `Content-Security-Policy violation: ${clean} A resource was blocked by CSP — allowlist the origin in the policy or self-host the asset; never silence this by removing the CSP header.`,
                 route,
                 viewport,
                 ...(stack ? { stack: stack.slice(0, 2000) } : {}),

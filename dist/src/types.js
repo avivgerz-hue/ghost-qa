@@ -5,6 +5,29 @@
  * rendered for a human (terminal), serialised for CI (JSON), or fed back to a
  * coding agent (Markdown diagnostic) without any translation layer.
  */
+export const TRAP_LABELS = {
+    console: 'Console & Framework Runtime',
+    network: 'Network & Asset Integrity',
+    layout: 'Layout, Responsive Geometry & Collision',
+    accessibility: 'Accessibility (WCAG 2.1 AA) & Keyboard Focus',
+    performance: 'Performance & Core Web Vitals',
+    links: 'Safe Interactive & Link Integrity',
+    seo: 'SEO, Metadata & Social Graph',
+    theme: 'Dark / Light Theme Emulation',
+};
+/** Which trap owns a category (interaction/navigation fold into Links/UX). */
+export const CATEGORY_TO_TRAP = {
+    console: 'console',
+    network: 'network',
+    layout: 'layout',
+    accessibility: 'accessibility',
+    performance: 'performance',
+    interaction: 'links',
+    navigation: 'links',
+    links: 'links',
+    seo: 'seo',
+    theme: 'theme',
+};
 export const DEFAULT_OPTIONS = {
     maxDepth: 2,
     maxRoutes: 25,
@@ -12,9 +35,11 @@ export const DEFAULT_OPTIONS = {
     timeoutMs: 15_000,
     settleMs: 600,
     headless: true,
-    viewports: ['desktop', 'mobile'],
+    viewports: ['desktop', 'tablet', 'mobile'],
     interactions: true,
     failOn: 'major',
+    colorSchemes: ['light', 'dark'],
+    screenshots: false,
 };
 export const SEVERITY_ORDER = {
     critical: 3,
@@ -35,7 +60,7 @@ export function fingerprint(input) {
 }
 export function makeIssue(input) {
     const detailString = input.details ? JSON.stringify(input.details) : '';
-    const id = fingerprint([input.category, input.type, input.route, input.viewport, input.message, detailString].join('|'));
+    const id = fingerprint([input.category, input.type, input.route, input.viewport, input.colorScheme ?? '', input.message, detailString].join('|'));
     return {
         ...input,
         id,
@@ -61,6 +86,9 @@ export function summarise(routes, interactions, issues, failOn) {
         performance: 0,
         interaction: 0,
         navigation: 0,
+        links: 0,
+        seo: 0,
+        theme: 0,
     };
     for (const issue of issues) {
         bySeverity[issue.severity] += 1;

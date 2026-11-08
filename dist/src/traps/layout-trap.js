@@ -6,7 +6,12 @@ export const EMPTY_METRICS = {
     hasViewportMeta: false,
     zeroSizeInteractives: [],
     brokenImages: [],
+    brokenSvgs: [],
     overflowingElements: [],
+    collisions: [],
+    smallTouchTargets: [],
+    clippedText: [],
+    offscreenInteractives: [],
 };
 /**
  * Pure evaluator: DOM geometry in, structured layout issues out.
@@ -60,6 +65,72 @@ export function evaluateLayoutMetrics(metrics, route, viewport) {
             details: { src },
         }));
     }
+    for (const src of metrics.brokenSvgs.slice(0, 5)) {
+        issues.push(makeIssue({
+            category: 'network',
+            severity: 'major',
+            type: 'broken-svg',
+            message: `Broken inline SVG (0×0 bounding box): ${src}. Give the <svg> explicit width/height or a viewBox with CSS size so it actually renders.`,
+            route,
+            viewport,
+            details: { element: src },
+            selector: src,
+        }));
+    }
+    for (const hit of metrics.collisions.slice(0, 5)) {
+        issues.push(makeIssue({
+            category: 'layout',
+            severity: 'major',
+            type: 'element-collision',
+            message: `Overlapping interactive elements: ${hit.first} overlaps ${hit.second}. Overlapping tap/click targets cause mis-taps — fix stacking (z-index), absolute positioning, or flow layout.`,
+            route,
+            viewport,
+            details: { first: hit.first, second: hit.second },
+            selector: hit.selector,
+            boundingBox: hit.box,
+        }));
+    }
+    if (viewport !== 'desktop') {
+        for (const target of metrics.smallTouchTargets.slice(0, 5)) {
+            issues.push(makeIssue({
+                category: 'layout',
+                severity: 'major',
+                type: 'small-touch-target',
+                message: `Touch target too small on ${viewport}: ${target.descriptor} is ${Math.round(target.box.width)}×${Math.round(target.box.height)}px (minimum 44×44px per WCAG 2.5.5 / Apple HIG). Increase padding or min-height/min-width.`,
+                route,
+                viewport,
+                details: { element: target.descriptor, width: Math.round(target.box.width), height: Math.round(target.box.height) },
+                selector: target.selector,
+                boundingBox: target.box,
+            }));
+        }
+    }
+    for (const clipped of metrics.clippedText.slice(0, 5)) {
+        issues.push(makeIssue({
+            category: 'layout',
+            severity: 'minor',
+            type: 'clipped-text',
+            message: `Text may be unintentionally clipped: ${clipped.descriptor} (content overflows its box with overflow hidden). Allow the container to grow, wrap, or scroll intentionally.`,
+            route,
+            viewport,
+            details: { element: clipped.descriptor },
+            selector: clipped.selector,
+            boundingBox: clipped.box,
+        }));
+    }
+    for (const off of metrics.offscreenInteractives.slice(0, 5)) {
+        issues.push(makeIssue({
+            category: 'layout',
+            severity: 'major',
+            type: 'offscreen-interactive',
+            message: `Interactive element is positioned off-screen and unreachable: ${off.descriptor}. Check transforms, absolute positioning and negative offsets.`,
+            route,
+            viewport,
+            details: { element: off.descriptor },
+            selector: off.selector,
+            boundingBox: off.box,
+        }));
+    }
     if (viewport === 'mobile' && !metrics.hasViewportMeta) {
         issues.push(makeIssue({
             category: 'layout',
@@ -93,10 +164,107 @@ function probeLayout() {
             zeroSizeInteractives.push(describe(el));
         }
     });
+    const cssPath = (el) => {
+        if (el.id)
+            return `#${el.id}`;
+        const testid = el.getAttribute('data-testid');
+        if (testid)
+            return `[data-testid="${testid}"]`;
+        const parts = [];
+        let node = el;
+        while (node && node !== document.body && parts.length < 4) {
+            const tag = node.tagName.toLowerCase();
+            const parent = node.parentElement;
+            if (!parent) {
+                parts.unshift(tag);
+                break;
+            }
+            const siblings = Array.from(parent.children).filter((c) => c.tagName === node.tagName);
+            parts.unshift(siblings.length > 1 ? `${tag}:nth-of-type(${siblings.indexOf(node) + 1})` : tag);
+            node = parent;
+        }
+        return parts.join(' > ');
+    };
+    const boxOf = (el) => {
+        const r = el.getBoundingClientRect();
+        return { x: Math.round(r.x), y: Math.round(r.y), width: Math.round(r.width), height: Math.round(r.height) };
+    };
     const brokenImages = [];
     document.querySelectorAll('img').forEach((img) => {
         if (img.complete && img.naturalWidth === 0) {
             brokenImages.push(img.currentSrc || img.src || img.alt || '(image without src)');
+        }
+    });
+    const brokenSvgs = [];
+    document.querySelectorAll('svg').forEach((svg) => {
+        const rect = svg.getBoundingClientRect();
+        const style = window.getComputedStyle(svg);
+        if (style.display !== 'none' && (rect.width === 0 || rect.height === 0)) {
+            brokenSvgs.push(cssPath(svg));
+        }
+    });
+    // Geometry pass over visible interactives: collisions, touch targets,
+    // off-screen elements. Capped — this runs on every route/viewport.
+    const visibleInteractives = [];
+    document.querySelectorAll(interactiveSelector).forEach((el) => {
+        const style = window.getComputedStyle(el);
+        if (style.display === 'none' || style.visibility === 'hidden')
+            return;
+        visibleInteractives.push(el);
+    });
+    const smallTouchTargets = [];
+    const offscreenInteractives = [];
+    for (const el of visibleInteractives.slice(0, 120)) {
+        const rect = el.getBoundingClientRect();
+        if (rect.width > 0 && rect.height > 0 && (rect.width < 44 || rect.height < 44)) {
+            smallTouchTargets.push({ descriptor: describe(el), selector: cssPath(el), box: boxOf(el) });
+        }
+        if (rect.right <= 0 || rect.left >= window.innerWidth) {
+            offscreenInteractives.push({ descriptor: describe(el), selector: cssPath(el), box: boxOf(el) });
+        }
+    }
+    const collisions = [];
+    const collisionPool = visibleInteractives.slice(0, 80);
+    for (let i = 0; i < collisionPool.length && collisions.length < 5; i++) {
+        for (let j = i + 1; j < collisionPool.length && collisions.length < 5; j++) {
+            const a = collisionPool[i];
+            const b = collisionPool[j];
+            if (a.contains(b) || b.contains(a))
+                continue;
+            const ra = a.getBoundingClientRect();
+            const rb = b.getBoundingClientRect();
+            if (ra.width === 0 || rb.width === 0)
+                continue;
+            const overlapW = Math.min(ra.right, rb.right) - Math.max(ra.left, rb.left);
+            const overlapH = Math.min(ra.bottom, rb.bottom) - Math.max(ra.top, rb.top);
+            if (overlapW > 4 && overlapH > 4) {
+                const overlapArea = overlapW * overlapH;
+                const minArea = Math.min(ra.width * ra.height, rb.width * rb.height);
+                if (overlapArea < minArea * 0.9) {
+                    collisions.push({
+                        first: describe(a),
+                        second: describe(b),
+                        selector: cssPath(a),
+                        box: boxOf(a),
+                    });
+                }
+            }
+        }
+    }
+    const clippedText = [];
+    document.querySelectorAll('body *').forEach((el) => {
+        if (clippedText.length >= 5)
+            return;
+        const html = el;
+        if (!html.textContent?.trim())
+            return;
+        const style = window.getComputedStyle(html);
+        if (style.overflow !== 'hidden' && style.overflowX !== 'hidden' && style.overflowY !== 'hidden')
+            return;
+        if (html.scrollHeight > html.clientHeight + 2 || html.scrollWidth > html.clientWidth + 2) {
+            if (html.clientHeight > 0 && html.clientWidth > 0) {
+                clippedText.push({ descriptor: describe(el), selector: cssPath(el), box: boxOf(el) });
+            }
         }
     });
     const overflowingElements = [];
@@ -119,7 +287,12 @@ function probeLayout() {
         hasViewportMeta: Boolean(document.querySelector('meta[name="viewport"]')),
         zeroSizeInteractives,
         brokenImages,
+        brokenSvgs,
         overflowingElements,
+        collisions,
+        smallTouchTargets,
+        clippedText,
+        offscreenInteractives,
     };
 }
 /** Runs the in-page probe against a live Playwright page and evaluates it. */

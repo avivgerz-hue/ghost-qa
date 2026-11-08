@@ -143,7 +143,7 @@ describe('MCP JSON-RPC protocol handler', () => {
   it('lists both ghost-qa tools with input schemas', async () => {
     const res = await handleJsonRpcRequest({ jsonrpc: '2.0', id: 2, method: 'tools/list' }, fakeHandlers);
     const tools = (res?.result as { tools: typeof MCP_TOOLS }).tools;
-    expect(tools.map((t) => t.name)).toEqual(['ghost_qa_audit_url', 'ghost_qa_doctor']);
+    expect(tools.map((t) => t.name)).toEqual(['ghost_qa_audit_url', 'ghost_qa_compare', 'ghost_qa_doctor']);
     expect(tools[0]?.inputSchema.required).toEqual(['url']);
   });
 

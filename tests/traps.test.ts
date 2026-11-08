@@ -259,9 +259,10 @@ describe('InteractionRunner safety gate', () => {
 });
 
 describe('BrowserSession viewport profiles', () => {
-  it('matches the spec: desktop 1440x900, mobile 390x844', () => {
+  it('matches the spec: desktop 1440x900, tablet 768x1024, mobile 375x812', () => {
     expect(VIEWPORT_PROFILES.desktop).toMatchObject({ width: 1440, height: 900 });
-    expect(VIEWPORT_PROFILES.mobile).toMatchObject({ width: 390, height: 844, isMobile: true, hasTouch: true });
+    expect(VIEWPORT_PROFILES.tablet).toMatchObject({ width: 768, height: 1024, hasTouch: true });
+    expect(VIEWPORT_PROFILES.mobile).toMatchObject({ width: 375, height: 812, isMobile: true, hasTouch: true });
   });
 });
 

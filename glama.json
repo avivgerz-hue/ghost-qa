@@ -4,8 +4,8 @@
     "avivgerz-hue"
   ],
   "name": "ghost-qa",
-  "displayName": "ghost-qa — Autonomous Browser QA for Coding Agents",
-  "description": "Autonomous headless browser QA & self-healing verification loop for AI coding agents (Claude Code, Codex, Cursor, Windsurf). Crawls a running localhost app on Desktop 1440x900 and Mobile 390x844, safely exercises interactive controls, and traps console/hydration errors, failed network requests, layout overflow, accessibility defects and performance problems — returning a structured Self-Healing Bug Report the agent fixes before reporting done.",
+  "displayName": "ghost-qa \u2014 Autonomous Browser QA for Coding Agents",
+  "description": "Autonomous headless browser QA & self-healing verification loop for AI coding agents (Claude Code, Codex, Cursor, Windsurf). 8-trap deep browser inspection across Desktop 1440x900, Tablet 768x1024 and Mobile 375x812 in light + dark: console/hydration, network/assets, layout/collision, WCAG a11y + keyboard focus, Core Web Vitals, link integrity, SEO/metadata, theme parity \u2014 with a QA Health Score (A+ to F), interactive HTML dashboard, and ghost_qa_compare regression diffing so agents prove fixes before reporting done.",
   "homepage": "https://github.com/avivgerz-hue/ghost-qa",
   "license": "MIT",
   "repository": {
@@ -31,7 +31,7 @@
   "tools": [
     {
       "name": "ghost_qa_audit_url",
-      "description": "Run the full ghost-qa headless browser audit against a running localhost app: crawls internal routes on Desktop 1440x900 and Mobile 390x844, safely exercises interactive controls, and traps console/hydration errors, failed network requests, layout overflow, accessibility bugs and performance problems. Returns the Self-Healing Bug Report — fix every critical/major issue it reports before declaring the task done.",
+      "description": "Run the full ghost-qa Deep Browser Inspection against a running localhost app: crawls internal routes on Desktop 1440x900, Tablet 768x1024 and Mobile 375x812 under light + dark colour schemes, safely exercises interactive controls, and runs the 8-Trap Engine (console/framework runtime, network/asset integrity, layout/geometry/collision, WCAG accessibility + keyboard focus, Core Web Vitals performance, link integrity, SEO/metadata, theme parity). Returns the Self-Healing Bug Report plus QA Health Score (0-100, grade A+ to F).",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -59,6 +59,28 @@
         },
         "required": [
           "url"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "ghost_qa_compare",
+      "description": "Compare two ghost-qa JSON reports and return the Regression & Verification Delta Report: scoreDelta, fixedFindings, newRegressions, remainingFindings. Proves a fix resolved the bug without introducing regressions; verified only at QA Health Score >= 95 with zero regressions.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "before": {
+            "type": "object",
+            "description": "Baseline ghost-qa report JSON (before fixes)"
+          },
+          "after": {
+            "type": "object",
+            "description": "New ghost-qa report JSON (after fixes)"
+          }
+        },
+        "required": [
+          "before",
+          "after"
         ],
         "additionalProperties": false
       }

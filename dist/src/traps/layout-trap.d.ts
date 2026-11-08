@@ -5,6 +5,27 @@ export interface OffendingElement {
     right: number;
     width: number;
 }
+export interface ElementFinding {
+    descriptor: string;
+    selector: string;
+    box: {
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+    };
+}
+export interface CollisionFinding {
+    first: string;
+    second: string;
+    selector: string;
+    box: {
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+    };
+}
 export interface LayoutMetrics {
     innerWidth: number;
     scrollWidth: number;
@@ -13,8 +34,18 @@ export interface LayoutMetrics {
     zeroSizeInteractives: string[];
     /** Images that finished loading but decoded to nothing. */
     brokenImages: string[];
+    /** Inline SVGs rendered with a 0×0 bounding box. */
+    brokenSvgs: string[];
     /** Elements extending past the right edge of the viewport. */
     overflowingElements: OffendingElement[];
+    /** Visible interactive elements overlapping each other (collision math). */
+    collisions: CollisionFinding[];
+    /** Touch targets below 44×44px on touch viewports (WCAG 2.5.5 / Apple HIG). */
+    smallTouchTargets: ElementFinding[];
+    /** Text containers whose content is unintentionally clipped. */
+    clippedText: ElementFinding[];
+    /** Interactive elements positioned entirely off-screen. */
+    offscreenInteractives: ElementFinding[];
 }
 export declare const EMPTY_METRICS: LayoutMetrics;
 /**

@@ -1,6 +1,15 @@
 import type { Page } from 'playwright';
 import { makeIssue, type QAIssue, type ViewportName } from '../types.js';
 
+export interface ContrastFailure {
+  descriptor: string;
+  selector: string;
+  /** Computed foreground/background contrast ratio (WCAG formula). */
+  ratio: number;
+  /** Required ratio for this text size (4.5 normal, 3 large). */
+  required: number;
+}
+
 export interface A11yMetrics {
   /** Buttons with no text content, aria-label, aria-labelledby or title. */
   buttonsWithoutName: string[];
@@ -12,6 +21,12 @@ export interface A11yMetrics {
   inputsMissingLabel: string[];
   hasDocumentTitle: boolean;
   hasHtmlLang: boolean;
+  /** Text whose computed contrast is below WCAG 2.1 AA. */
+  contrastFailures: ContrastFailure[];
+  /** Human-readable heading-structure problems (missing h1, level skips). */
+  headingProblems: string[];
+  /** Tab-focus problems found by keyboard simulation (filled by collect()). */
+  focusProblems: string[];
 }
 
 export const EMPTY_A11Y_METRICS: A11yMetrics = {
@@ -21,7 +36,30 @@ export const EMPTY_A11Y_METRICS: A11yMetrics = {
   inputsMissingLabel: [],
   hasDocumentTitle: true,
   hasHtmlLang: true,
+  contrastFailures: [],
+  headingProblems: [],
+  focusProblems: [],
 };
+
+/** WCAG relative luminance of an sRGB colour. */
+export function relativeLuminance(r: number, g: number, b: number): number {
+  const linear = (channel: number): number => {
+    const s = channel / 255;
+    return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+  };
+  return 0.2126 * linear(r) + 0.7152 * linear(g) + 0.0722 * linear(b);
+}
+
+/** WCAG contrast ratio (1–21) between two sRGB colours. */
+export function contrastRatio(
+  fg: [number, number, number],
+  bg: [number, number, number],
+): number {
+  const l1 = relativeLuminance(...fg);
+  const l2 = relativeLuminance(...bg);
+  const [hi, lo] = l1 >= l2 ? [l1, l2] : [l2, l1];
+  return (hi + 0.05) / (lo + 0.05);
+}
 
 const MAX_PER_KIND = 5;
 
@@ -88,6 +126,49 @@ export function evaluateA11yMetrics(
         route,
         viewport,
         details: { element: descriptor },
+      }),
+    );
+  }
+
+  for (const failure of metrics.contrastFailures.slice(0, MAX_PER_KIND)) {
+    issues.push(
+      makeIssue({
+        category: 'accessibility',
+        severity: 'major',
+        type: 'contrast-insufficient',
+        message: `Insufficient text contrast (WCAG 2.1 AA): ${failure.descriptor} has ratio ${failure.ratio}:1, needs ${failure.required}:1. Darken the text or lighten the background (or vice versa) — do not rely on opacity tricks.`,
+        route,
+        viewport,
+        details: { element: failure.descriptor, ratio: failure.ratio, required: failure.required },
+        selector: failure.selector,
+      }),
+    );
+  }
+
+  for (const problem of metrics.headingProblems.slice(0, MAX_PER_KIND)) {
+    issues.push(
+      makeIssue({
+        category: 'accessibility',
+        severity: 'minor',
+        type: 'heading-hierarchy',
+        message: `Heading hierarchy problem: ${problem}. Keep one <h1> per page and never skip levels (h1 → h2 → h3) — screen-reader users navigate by headings.`,
+        route,
+        viewport,
+        details: { problem },
+      }),
+    );
+  }
+
+  for (const problem of metrics.focusProblems.slice(0, MAX_PER_KIND)) {
+    issues.push(
+      makeIssue({
+        category: 'accessibility',
+        severity: 'major',
+        type: 'focus-not-visible',
+        message: `Keyboard focus problem: ${problem}. Every interactive element needs a visible :focus-visible style (outline or ring) — keyboard users must always know where focus is.`,
+        route,
+        viewport,
+        details: { problem },
       }),
     );
   }
@@ -195,6 +276,78 @@ function probeA11y(): A11yMetrics {
       if (!hasLabel) inputsMissingLabel.push(describe(el));
     });
 
+  // Heading hierarchy: exactly one h1, no skipped levels.
+  const headingProblems: string[] = [];
+  const headings = Array.from(document.querySelectorAll('h1, h2, h3, h4, h5, h6'));
+  const h1Count = headings.filter((h) => h.tagName === 'H1').length;
+  if (headings.length > 0 && h1Count === 0) headingProblems.push('page has headings but no <h1>');
+  if (h1Count > 1) headingProblems.push(`page has ${h1Count} <h1> elements (expected exactly one)`);
+  let previousLevel = 0;
+  for (const heading of headings) {
+    const level = Number(heading.tagName.slice(1));
+    if (previousLevel > 0 && level > previousLevel + 1) {
+      headingProblems.push(
+        `level skip h${previousLevel} → h${level} at "${(heading.textContent ?? '').replace(/\s+/g, ' ').trim().slice(0, 40)}"`,
+      );
+    }
+    previousLevel = level;
+  }
+
+  // Computed contrast: sample visible text-bearing elements and compute the
+  // real WCAG ratio between computed foreground and effective background.
+  const parseRgb = (value: string): [number, number, number, number] | null => {
+    const match = value.match(/rgba?\(([^)]+)\)/);
+    if (!match) return null;
+    const parts = match[1]!.split(',').map((p) => Number.parseFloat(p));
+    if (parts.length < 3 || parts.some((n) => Number.isNaN(n))) return null;
+    return [parts[0]!, parts[1]!, parts[2]!, parts.length > 3 ? parts[3]! : 1];
+  };
+  const luminance = (rgb: [number, number, number]): number => {
+    const linear = (channel: number): number => {
+      const s = channel / 255;
+      return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+    };
+    return 0.2126 * linear(rgb[0]) + 0.7152 * linear(rgb[1]) + 0.0722 * linear(rgb[2]);
+  };
+  const effectiveBackground = (el: Element): [number, number, number] => {
+    let node: Element | null = el;
+    while (node) {
+      const bg = parseRgb(window.getComputedStyle(node).backgroundColor);
+      if (bg && bg[3] > 0) return [bg[0], bg[1], bg[2]];
+      node = node.parentElement;
+    }
+    return [255, 255, 255];
+  };
+  const contrastFailures: ContrastFailure[] = [];
+  const textCandidates = Array.from(document.querySelectorAll('body *')).slice(0, 400);
+  for (const el of textCandidates) {
+    if (contrastFailures.length >= 8) break;
+    const html = el as HTMLElement;
+    const ownText = Array.from(html.childNodes).some(
+      (n) => n.nodeType === Node.TEXT_NODE && (n.textContent ?? '').trim().length > 0,
+    );
+    if (!ownText || !visible(el)) continue;
+    const style = window.getComputedStyle(html);
+    const fg = parseRgb(style.color);
+    if (!fg) continue;
+    const bg = effectiveBackground(el);
+    const l1 = luminance([fg[0], fg[1], fg[2]]);
+    const l2 = luminance(bg);
+    const ratio = (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
+    const fontSize = Number.parseFloat(style.fontSize) || 16;
+    const bold = Number.parseInt(style.fontWeight, 10) >= 700 || style.fontWeight === 'bold';
+    const large = fontSize >= 24 || (fontSize >= 18.66 && bold);
+    const required = large ? 3 : 4.5;
+    if (ratio < required) {
+      contrastFailures.push({
+        descriptor: describe(el),
+        selector: describe(el),
+        ratio: Math.round(ratio * 100) / 100,
+        required,
+      });
+    }
+  }
+
   return {
     buttonsWithoutName,
     linksWithoutName,
@@ -202,6 +355,35 @@ function probeA11y(): A11yMetrics {
     inputsMissingLabel,
     hasDocumentTitle: document.title.trim().length > 0,
     hasHtmlLang: (document.documentElement.getAttribute('lang') ?? '').trim().length > 0,
+    contrastFailures,
+    headingProblems,
+    focusProblems: [],
+  };
+}
+
+interface FocusStep {
+  descriptor: string;
+  hasVisibleFocus: boolean;
+  isBody: boolean;
+}
+
+/** In-page probe: describes the currently focused element + focus styling. */
+function probeFocusStep(): FocusStep {
+  const el = document.activeElement;
+  if (!el || el === document.body) {
+    return { descriptor: '(no element focused)', hasVisibleFocus: false, isBody: true };
+  }
+  const style = window.getComputedStyle(el as HTMLElement);
+  const outlineVisible =
+    style.outlineStyle !== 'none' && Number.parseFloat(style.outlineWidth) > 0;
+  const shadowVisible = style.boxShadow !== 'none' && style.boxShadow !== '';
+  const tag = el.tagName.toLowerCase();
+  const id = el.id ? `#${el.id}` : '';
+  const text = (el.textContent ?? '').replace(/\s+/g, ' ').trim().slice(0, 30);
+  return {
+    descriptor: `${tag}${id}${text ? ` "${text}"` : ''}`,
+    hasVisibleFocus: outlineVisible || shadowVisible,
+    isBody: false,
   };
 }
 
@@ -220,6 +402,50 @@ export class A11yTrap {
     } catch {
       return [];
     }
+    metrics.focusProblems = await this.probeKeyboardFocus(page);
     return evaluateA11yMetrics(metrics, route, this.viewport);
+  }
+
+  /**
+   * Automated keyboard tab-order verification: press Tab repeatedly and
+   * confirm focus actually moves and lands somewhere visibly styled.
+   */
+  private async probeKeyboardFocus(page: Page): Promise<string[]> {
+    const problems: string[] = [];
+    try {
+      const focusableCount = await page.evaluate(
+        () =>
+          document.querySelectorAll(
+            'a[href], button:not([disabled]), input:not([disabled]), select, textarea, [tabindex]:not([tabindex="-1"])',
+          ).length,
+      );
+      if (focusableCount === 0) return problems;
+
+      let stuckTabs = 0;
+      let invisibleFocus = 0;
+      const steps = Math.min(12, focusableCount + 2);
+      for (let i = 0; i < steps; i++) {
+        await page.keyboard.press('Tab');
+        const step = await page.evaluate(probeFocusStep);
+        if (step.isBody) {
+          stuckTabs += 1;
+        } else {
+          stuckTabs = 0;
+          if (!step.hasVisibleFocus) invisibleFocus += 1;
+        }
+      }
+      if (stuckTabs >= 3) {
+        problems.push(
+          `Tab key never moves focus onto any of the ${focusableCount} focusable elements (dead focus state — check tabindex and focus management).`,
+        );
+      } else if (invisibleFocus >= 3) {
+        problems.push(
+          `${invisibleFocus} focused elements show no visible focus indicator (no outline or focus ring) during Tab navigation.`,
+        );
+      }
+    } catch {
+      /* keyboard simulation unsupported on this page — skip silently */
+    }
+    return problems;
   }
 }

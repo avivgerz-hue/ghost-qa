@@ -60,6 +60,14 @@ export function formatTerminalSummary(report: GhostQAReport): string {
   lines.push(
     `  Issues:               ${summary.totalIssues} total — ${red(`${summary.bySeverity.critical} critical`)}, ${yellow(`${summary.bySeverity.major} major`)}, ${dim(`${summary.bySeverity.minor} minor`)}`,
   );
+  if (report.health) {
+    const score = report.health.score;
+    const colored = score >= 90 ? green(`${score}/100`) : score >= 60 ? yellow(`${score}/100`) : red(`${score}/100`);
+    lines.push(`  QA Health Score:      ${colored} — Grade ${bold(report.health.grade)} (8 traps · ${report.options.viewports.join(' + ')} · ${(report.options.colorSchemes ?? ['light']).join(' + ')})`);
+    lines.push(
+      dim(`  Per-trap:             ${report.health.byTrap.map((t) => `${t.trap} ${t.score}`).join(' · ')}`),
+    );
+  }
   lines.push('');
 
   if (report.issues.length > 0) {

@@ -7,8 +7,11 @@ export declare function isCorsFailure(errorText: string): boolean;
  * or `null` for healthy responses. Unit-testable without a browser.
  */
 export declare function evaluateHttpResponse(status: number, url: string, route: string, viewport: ViewportName, resourceType?: string): QAIssue | null;
+export declare function isTimeoutFailure(errorText: string): boolean;
 /** Pure evaluator for a request that never completed (DNS, CORS, abort…). */
-export declare function evaluateRequestFailure(errorText: string, url: string, route: string, viewport: ViewportName, resourceType?: string): QAIssue | null;
+export declare function evaluateRequestFailure(errorText: string, url: string, route: string, viewport: ViewportName, resourceType?: string, extras?: {
+    preflight?: boolean;
+}): QAIssue | null;
 export declare function shortUrl(url: string): string;
 /** Attaches `response` + `requestfailed` listeners to a page. */
 export declare class NetworkTrap {
