@@ -211,7 +211,7 @@ describe('MCP JSON-RPC protocol handler', () => {
   });
 
   it('exposes the ready-to-paste mcpServers config', () => {
-    expect(mcpServerConfig()).toEqual({ mcpServers: { 'ghost-qa': { command: 'npx', args: ['-y', 'github:avivgerz-hue/ghost-qa', 'mcp'] } } });
+    expect(mcpServerConfig()).toEqual({ mcpServers: { 'ghost-qa': { command: 'npx', args: ['-y', 'ghost-qa', 'mcp'] } } });
   });
 });
 
@@ -277,7 +277,7 @@ describe('ghost-qa init MCP config', () => {
     const file = join(dir, '.mcp.json');
     expect(await installMcpConfig(file)).toBe('installed');
     let parsed = JSON.parse(await readFile(file, 'utf8')) as { mcpServers: Record<string, unknown> };
-    expect(parsed.mcpServers['ghost-qa']).toEqual({ command: 'npx', args: ['-y', 'github:avivgerz-hue/ghost-qa', 'mcp'] });
+    expect(parsed.mcpServers['ghost-qa']).toEqual({ command: 'npx', args: ['-y', 'ghost-qa', 'mcp'] });
     expect(await installMcpConfig(file)).toBe('already configured');
 
     parsed.mcpServers['other-tool'] = { command: 'other' };

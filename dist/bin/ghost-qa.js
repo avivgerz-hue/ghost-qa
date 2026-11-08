@@ -19,7 +19,7 @@ export const AGENT_PROTOCOL = `${PROTOCOL_START}
 Before reporting any task that touches frontend code as complete, you MUST verify it in a real browser:
 
 1. Ensure the app is running locally (e.g. \`npm run dev\`).
-2. Run: \`npx github:avivgerz-hue/ghost-qa test <local-url>\` (e.g. \`npx github:avivgerz-hue/ghost-qa test http://localhost:3000\`) — or call the \`ghost_qa_audit_url\` MCP tool if your host exposes it. Add \`--server-cmd "npm run dev"\` to let ghost-qa manage the dev server itself.
+2. Run: \`npx -y ghost-qa test <local-url>\` (e.g. \`npx -y ghost-qa test http://localhost:3000\`) — or call the \`ghost_qa_audit_url\` MCP tool if your host exposes it. Add \`--server-cmd "npm run dev"\` to let ghost-qa manage the dev server itself.
 3. If ghost-qa reports ANY critical or major issue (hydration errors, console errors, 4xx/5xx responses, mobile overflow, accessibility or performance failures, broken interactions), fix the root cause in source and re-run.
 4. Repeat until ghost-qa prints **PASS**. Only then may you tell the user the task is done.
 
@@ -32,8 +32,8 @@ You are a coding agent. Never report a frontend task complete without running it
 ## The Self-Healing Loop
 
 1. Run the audit against the final code:
-   - Server already running: \`npx github:avivgerz-hue/ghost-qa test <local-url>\`
-   - Otherwise: \`npx github:avivgerz-hue/ghost-qa test <local-url> --server-cmd "npm run dev"\` (ghost-qa spawns, awaits and tears down the server)
+   - Server already running: \`npx -y ghost-qa test <local-url>\`
+   - Otherwise: \`npx -y ghost-qa test <local-url> --server-cmd "npm run dev"\` (ghost-qa spawns, awaits and tears down the server)
    - Or call the \`ghost_qa_audit_url\` MCP tool if your host exposes it (identical engine).
    It crawls routes on Desktop 1440x900 + Mobile 390x844 and runs the 5-Trap Engine: console/hydration, network, layout, accessibility, performance — plus safe interaction testing (never destructive controls).
 2. Read the Self-Healing Bug Report. Fix every critical/major issue by \`#id\`, at the root cause in source — never silence the checker, delete failing UI, or add suppressHydrationWarning.
@@ -41,7 +41,7 @@ You are a coding agent. Never report a frontend task complete without running it
 4. Only then report completion, naming the URL verified, routes crawled, interactions tested, and issues fixed.
 
 Useful flags: \`--max-depth\`, \`--max-routes\`, \`--viewport mobile\`, \`--json\`, \`--report <file>\`, \`--html <file>\`, \`--fail-on minor\`.
-If Chromium is missing: \`npx playwright install chromium\`, then \`npx github:avivgerz-hue/ghost-qa doctor\`.
+If Chromium is missing: \`npx playwright install chromium\`, then \`npx -y ghost-qa doctor\`.
 Full skill: https://github.com/avivgerz-hue/ghost-qa/blob/main/SKILL.md
 `;
 const HELP = `
@@ -71,12 +71,15 @@ test options:
   --quiet                Suppress the terminal summary (report/exit code only)
 
 Examples:
-  npx github:avivgerz-hue/ghost-qa test http://localhost:3000
-  npx github:avivgerz-hue/ghost-qa test http://localhost:3000 --server-cmd "npm run dev"
-  npx github:avivgerz-hue/ghost-qa test http://localhost:5173 --max-depth 3 --html ghost-qa-report.html
-  npx github:avivgerz-hue/ghost-qa test http://localhost:3000 --json > report.json
-  npx github:avivgerz-hue/ghost-qa init
-  npx github:avivgerz-hue/ghost-qa mcp
+  npx -y ghost-qa test http://localhost:3000
+  npx -y ghost-qa test http://localhost:3000 --server-cmd "npm run dev"
+  npx -y ghost-qa test http://localhost:5173 --max-depth 3 --html ghost-qa-report.html
+  npx -y ghost-qa test http://localhost:3000 --json > report.json
+  npx -y ghost-qa init
+  npx -y ghost-qa mcp
+
+No npm? Every command also works straight from GitHub, e.g.
+  npx -y github:avivgerz-hue/ghost-qa test http://localhost:3000
 `;
 function parsePositiveInt(value, flag) {
     const parsed = Number.parseInt(value ?? '', 10);
@@ -264,7 +267,7 @@ export async function installSkill(targetDir, force = false) {
 /**
  * Writes (or merges into) `.mcp.json`, preserving any MCP servers the
  * project already configured. The ghost-qa entry is always refreshed so
- * hosts invoke the published CLI: `npx -y github:avivgerz-hue/ghost-qa mcp`.
+ * hosts invoke the published CLI: `npx -y ghost-qa mcp`.
  */
 export async function installMcpConfig(mcpJsonPath, force = false) {
     const desired = mcpServerConfig();
@@ -300,7 +303,7 @@ async function runInit(args) {
     for (const result of results) {
         process.stdout.write(`  • ${result.file} — ${result.action}\n`);
     }
-    process.stdout.write('\nYour coding agent will now run `npx github:avivgerz-hue/ghost-qa test <local-url>` and fix browser failures before reporting a task complete.\n' +
+    process.stdout.write('\nYour coding agent will now run `npx -y ghost-qa test <local-url>` and fix browser failures before reporting a task complete.\n' +
         'MCP hosts (Claude Code, Claude Desktop, Cursor, Codex) can also call the ghost_qa_audit_url / ghost_qa_doctor tools directly via the .mcp.json entry above.\n');
     return 0;
 }
@@ -317,7 +320,7 @@ async function runDoctor() {
         process.stdout.write('  ✖ Chromium binary not found. Run: npx playwright install chromium\n');
     }
     process.stdout.write(result.ready
-        ? '\n✔ ghost-qa is ready: npx github:avivgerz-hue/ghost-qa test http://localhost:3000\n'
+        ? '\n✔ ghost-qa is ready: npx -y ghost-qa test http://localhost:3000\n'
         : '\n✖ Setup incomplete — fix the items above.\n');
     return result.ready ? 0 : 1;
 }

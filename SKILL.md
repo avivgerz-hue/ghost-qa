@@ -26,12 +26,14 @@ Unit tests, type-checking, linting and code review do **not** satisfy this rule.
 
 | Situation | Command |
 | --- | --- |
-| Dev server already running | `npx github:avivgerz-hue/ghost-qa test <url>` |
-| Server not running (most common) | `npx github:avivgerz-hue/ghost-qa test <url> --server-cmd "npm run dev"` — ghost-qa spawns it, waits for it, audits, and kills the process tree afterward |
+| Dev server already running | `npx -y ghost-qa test <url>` |
+| Server not running (most common) | `npx -y ghost-qa test <url> --server-cmd "npm run dev"` — ghost-qa spawns it, waits for it, audits, and kills the process tree afterward |
 | Your host exposes MCP tools | Call **`ghost_qa_audit_url`** with the URL (call `ghost_qa_doctor` first if it errors) — identical engine, identical report |
 | Mobile-only bug hunt | add `--viewport mobile` |
 | Large app | add `--max-depth 3 --max-routes 50` |
 | Evidence for a PR/CI | add `--report ghost-qa-report.md --html ghost-qa-report.html` |
+
+> All commands use the published npm package (`npx -y ghost-qa …`). If npm is unavailable, `npx -y github:avivgerz-hue/ghost-qa …` runs the identical CLI straight from GitHub.
 
 Common local URLs: Next.js / CRA `http://localhost:3000`, Vite `http://localhost:5173`, Astro `http://localhost:4321`, Angular `http://localhost:4200`. If unsure, check the dev server output or `package.json` scripts — never guess silently; state the URL you verified in your completion message.
 
@@ -82,7 +84,7 @@ ghost-qa never clicks destructive controls (delete, checkout, pay, logout, publi
 
 | Symptom | Do this |
 | --- | --- |
-| "could not launch Chromium" | `npx playwright install chromium` (one-time), then `npx github:avivgerz-hue/ghost-qa doctor` |
+| "could not launch Chromium" | `npx playwright install chromium` (one-time), then `npx -y ghost-qa doctor` |
 | `navigation-failed` on every route | Server isn't on that URL/port — start it, or re-run with `--server-cmd "npm run dev"` |
 | Everything 404s | Wrong port or base path — confirm the URL in a browser/`curl` yourself first |
 | Audit seems to test a login page | The app requires auth for those routes; report that limitation instead of claiming full verification |
@@ -93,7 +95,7 @@ ghost-qa never clicks destructive controls (delete, checkout, pay, logout, publi
 
 When the final run passes, report completion like this:
 
-> ✅ Done. Verified in a real browser with ghost-qa: `npx github:avivgerz-hue/ghost-qa test <url>` → **GHOST-QA PASS**
+> ✅ Done. Verified in a real browser with ghost-qa: `npx -y ghost-qa test <url>` → **GHOST-QA PASS**
 > Routes crawled: N · Interactions tested: N · Issues fixed this session: (list `#id`s, or "none found")
 > Stack: desktop 1440×900 + mobile 390×844, 5 traps (console, network, layout, accessibility, performance)
 

@@ -7,7 +7,7 @@ import { NetworkTrap } from '../traps/network-trap.js';
 import { A11yTrap } from '../traps/a11y-trap.js';
 import { PerfTrap } from '../traps/perf-trap.js';
 import { dedupeIssues, makeIssue, summarise, } from '../types.js';
-export const GHOST_QA_VERSION = '1.3.0';
+export const GHOST_QA_VERSION = '1.3.1';
 /**
  * The full ghost-qa audit: crawl + all five traps (console, network, layout,
  * accessibility, performance) + safe interactions, on every configured

@@ -1,5 +1,5 @@
 import { type GhostQAOptions, type GhostQAReport } from '../types.js';
-export declare const GHOST_QA_VERSION = "1.3.0";
+export declare const GHOST_QA_VERSION = "1.3.1";
 /**
  * The full ghost-qa audit: crawl + all five traps (console, network, layout,
  * accessibility, performance) + safe interactions, on every configured

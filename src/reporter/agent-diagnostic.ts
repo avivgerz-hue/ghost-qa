@@ -86,7 +86,7 @@ export function formatAgentDiagnostic(report: GhostQAReport): string {
   lines.push('');
   lines.push('## Self-healing loop');
   lines.push('1. Fix each bug above in source (reference issues by `#id`).');
-  lines.push(`2. Re-run: \`npx github:avivgerz-hue/ghost-qa test ${report.targetUrl}\``);
+  lines.push(`2. Re-run: \`npx -y ghost-qa test ${report.targetUrl}\``);
   lines.push('3. Repeat until ghost-qa prints PASS. Only then report the task complete to the user.');
   return lines.join('\n');
 }

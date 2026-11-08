@@ -24,7 +24,7 @@
 
   <g font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="20" xml:space="preserve">
     <!-- command -->
-    <text x="36" y="108"><tspan fill="#7ee787">$</tspan><tspan fill="#e6edf3" dx="12">npx github:avivgerz-hue/ghost-qa test http://localhost:3000</tspan></text>
+    <text x="36" y="108"><tspan fill="#7ee787">$</tspan><tspan fill="#e6edf3" dx="12">npx -y ghost-qa test http://localhost:3000</tspan></text>
 
     <!-- header -->
     <text x="36" y="152"><tspan fill="#e6edf3" font-weight="bold">👻 ghost-qa v1.3.0</tspan><tspan fill="#8b949e"> — autonomous browser verification</tspan></text>

@@ -17,7 +17,7 @@ import {
   type RouteRecord,
 } from '../types.js';
 
-export const GHOST_QA_VERSION = '1.3.0';
+export const GHOST_QA_VERSION = '1.3.1';
 
 /**
  * The full ghost-qa audit: crawl + all five traps (console, network, layout,

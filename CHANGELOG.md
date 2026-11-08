@@ -2,6 +2,16 @@
 
 All notable changes to ghost-qa are documented here. Format follows [Keep a Changelog](https://keepachangelog.com), versions follow [SemVer](https://semver.org).
 
+## [1.3.1] — 2026-11-08
+
+### Added
+- **Published on npm** as [`ghost-qa`](https://www.npmjs.com/package/ghost-qa): the primary invocation is now `npx -y ghost-qa …` (CLI, `init`, and the generated `.mcp.json` MCP entry), with `npx -y github:avivgerz-hue/ghost-qa …` documented as an identical GitHub-source alternative. Official MCP Registry `server.json` package spec now resolves the npm package.
+- npm version + monthly downloads badges in the README.
+- Production `Dockerfile` + `.dockerignore` (Glama MCP verification: `initialize`/`tools/list` introspection answers with no Chromium present) and the `assets/hero-terminal.svg` terminal demo embedded in the README.
+
+### Changed
+- Normalized `package.json` `bin` to `dist/bin/ghost-qa.js` (no leading `./`, silences npm v11+ warnings).
+
 ## [1.3.0] — 2026-11-07
 
 ### Added
