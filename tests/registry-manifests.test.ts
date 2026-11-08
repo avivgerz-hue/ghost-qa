@@ -78,6 +78,30 @@ describe('MCP registry manifests (smithery / glama / official registry)', () => 
     expect(cff).toContain('license: MIT');
   });
 
+  it('ships a production Dockerfile whose entrypoint is the MCP server (Glama introspection)', () => {
+    const dockerfile = readText('Dockerfile');
+    expect(dockerfile).toContain('npm ci --omit=dev --ignore-scripts');
+    expect(dockerfile).toContain('COPY dist/ ./dist/');
+    expect(dockerfile).toContain('ENTRYPOINT ["node", "dist/bin/ghost-qa.js", "mcp"]');
+
+    const dockerignore = readText('.dockerignore');
+    expect(dockerignore).toContain('node_modules');
+    expect(dockerignore).toContain('.git');
+    // dist/ is prebuilt and copied into the image — it must never be ignored.
+    expect(dockerignore.split('\n').map((l) => l.trim())).not.toContain('dist');
+  });
+
+  it('embeds the SVG terminal hero in the README below the badges', () => {
+    const svg = readText('assets/hero-terminal.svg');
+    expect(svg).toContain('<svg');
+    expect(svg).toContain('5-TRAP ENGINE');
+    expect(svg).toContain('1440×900');
+    expect(svg).toContain('390×844');
+    expect(svg).toContain('hydration');
+    expect(svg).toContain('Self-Healing Bug Report');
+    expect(readText('README.md')).toContain('![ghost-qa terminal preview](./assets/hero-terminal.svg)');
+  });
+
   it('package.json carries 30+ discoverability keywords incl. MCP terms', () => {
     const keywords = (readJson('package.json').keywords as string[]).map((k) => k.toLowerCase());
     expect(keywords.length).toBeGreaterThanOrEqual(30);

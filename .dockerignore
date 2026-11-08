@@ -1,0 +1,38 @@
+# Version control & CI
+.git
+.gitignore
+.github
+
+# Dependencies & build/test artifacts (dist/ is prebuilt and REQUIRED —
+# never ignore it; the Dockerfile copies it into the image)
+node_modules
+coverage
+test-results
+playwright-report
+.playwright
+
+# Local reports & logs
+ghost-qa-report.*
+*.log
+npm-debug.log*
+
+# Secrets & local environment
+.env
+.env.*
+!.env.example
+
+# Editor / OS noise
+.DS_Store
+.idea
+.vscode
+
+# Not needed at runtime (sources are compiled into the committed dist/)
+src
+bin
+tests
+scripts
+assets
+
+# Docker itself
+Dockerfile
+.dockerignore

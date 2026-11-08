@@ -8,6 +8,8 @@
 [![Node >= 20](https://img.shields.io/badge/node-%3E%3D20-brightgreen.svg)](https://nodejs.org)
 [![Powered by Playwright](https://img.shields.io/badge/powered%20by-Playwright-45ba4b.svg)](https://playwright.dev)
 
+![ghost-qa terminal preview](./assets/hero-terminal.svg)
+
 Coding agents (Claude Code, Codex, Cursor, Windsurf) write code **blind** — then declare victory while the actual browser has React hydration errors, broken buttons, 500ing APIs, or mobile layout overflow.
 
 `ghost-qa` fixes that. One command launches a headless browser against your running app, crawls the live DOM, safely pokes every button, traps runtime/network/layout failures, and hands the agent a structured **Self-Healing Bug Report** so it fixes its own bugs *before* telling you it's done.
@@ -134,6 +136,13 @@ npx github:avivgerz-hue/ghost-qa mcp
 ```
 
 Works with Claude Code, Claude Desktop, Cursor, Codex — any MCP host.
+
+**Docker / Glama:** the repo ships a production `Dockerfile` whose entrypoint is the MCP server (`node dist/bin/ghost-qa.js mcp`). Registry introspection (`initialize` + `tools/list` over stdio) answers instantly with no Chromium present — a browser is only launched when a tool is actually called:
+
+```bash
+docker build -t ghost-qa .
+docker run -i ghost-qa   # MCP JSON-RPC over stdin/stdout
+```
 
 ---
 
