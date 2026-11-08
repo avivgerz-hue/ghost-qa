@@ -21,6 +21,20 @@ export interface ParsedCompareArgs {
     outFile?: string;
 }
 export declare function parseCompareArgs(args: string[]): ParsedCompareArgs;
+/**
+ * Connects ghost-qa to every major coding agent, in each one's native
+ * dialect — all idempotent, all preserving existing user config:
+ *
+ * 1. Claude Code:    .mcp.json, CLAUDE.md, .claude/skills/ghost-qa/SKILL.md,
+ *                    .claude-plugin/plugin.json
+ * 2. OpenCode:       opencode.json (mcp), AGENTS.md
+ * 3. Codex/universal: AGENTS.md, .agents/skills/ghost-qa/SKILL.md
+ * 4. Cursor:         .cursor/mcp.json, .cursor/rules/ghost-qa.mdc, .cursorrules
+ * 5. Windsurf:       .windsurfrules
+ * 6. VS Code/Copilot: .vscode/mcp.json, .github/copilot-instructions.md
+ * 7. Cline/Roo:      .clinerules
+ * 8. Zed:            .zed/settings.json (context_servers)
+ */
 export declare function installSkill(targetDir: string, force?: boolean): Promise<Array<{
     file: string;
     action: string;

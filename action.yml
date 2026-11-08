@@ -1,0 +1,84 @@
+name: "ghost-qa — Autonomous Browser QA"
+description: "Headless-browser QA for coding agents: 8-trap deep inspection (console, network, layout, WCAG a11y + keyboard focus, Core Web Vitals, links, SEO, theme parity) across desktop/tablet/mobile in light + dark, with a QA Health Score (A+ to F), self-healing bug report, and interactive HTML dashboard."
+author: "VibeFoundry"
+branding:
+  icon: "check-circle"
+  color: "green"
+
+inputs:
+  url:
+    description: "URL of the running app to audit (start it first, or pass cmd)"
+    required: false
+    default: "http://localhost:3000"
+  cmd:
+    description: "Optional dev-server command to spawn before the audit (e.g. \"npm run dev\"). ghost-qa waits for the URL, audits, then terminates the server tree."
+    required: false
+    default: ""
+  fail-on:
+    description: "Severity gate: high (critical), medium (major) or low (minor). critical|major|minor are also accepted."
+    required: false
+    default: "high"
+  out-dir:
+    description: "Directory for report.json, GHOST-QA-REPORT.md, PATCH-PROMPT.md and report.html"
+    required: false
+    default: ".ghost-qa"
+  screenshots:
+    description: "Capture route screenshots and embed them in the HTML dashboard"
+    required: false
+    default: "false"
+
+outputs:
+  out-dir:
+    description: "Directory containing the ghost-qa artifacts"
+    value: ${{ inputs.out-dir }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: "20"
+
+    - name: Install Playwright Chromium (if needed)
+      shell: bash
+      run: |
+        set -euo pipefail
+        if [ ! -d "$HOME/.cache/ms-playwright" ] || [ -z "$(ls -A "$HOME/.cache/ms-playwright" 2>/dev/null)" ]; then
+          TMP_DIR="$(mktemp -d)"
+          # Install ghost-qa into a scratch prefix so the Chromium build
+          # matches the exact Playwright revision ghost-qa runs with.
+          npm install --prefix "$TMP_DIR" --ignore-scripts --no-audit --no-fund ghost-qa@2.0.0
+          node "$TMP_DIR/node_modules/playwright/cli.js" install --with-deps chromium
+        else
+          echo "Chromium already present — skipping install."
+        fi
+
+    - name: Run ghost-qa (8-Trap Deep Browser Inspection)
+      shell: bash
+      env:
+        GHOST_QA_URL: ${{ inputs.url }}
+        GHOST_QA_CMD: ${{ inputs.cmd }}
+        GHOST_QA_FAIL_ON: ${{ inputs.fail-on }}
+        GHOST_QA_OUT_DIR: ${{ inputs.out-dir }}
+        GHOST_QA_SCREENSHOTS: ${{ inputs.screenshots }}
+      run: |
+        set -euo pipefail
+        case "$GHOST_QA_FAIL_ON" in
+          high|critical) FAIL_ON="critical" ;;
+          medium|major) FAIL_ON="major" ;;
+          low|minor) FAIL_ON="minor" ;;
+          *) echo "Unknown fail-on '$GHOST_QA_FAIL_ON' (use high|medium|low)"; exit 2 ;;
+        esac
+        ARGS=(test "$GHOST_QA_URL" --fail-on "$FAIL_ON" --out-dir "$GHOST_QA_OUT_DIR")
+        if [ "$GHOST_QA_SCREENSHOTS" = "true" ]; then ARGS+=(--screenshots); fi
+        if [ -n "$GHOST_QA_CMD" ]; then ARGS+=(--server-cmd "$GHOST_QA_CMD"); fi
+        npx -y ghost-qa@2.0.0 "${ARGS[@]}"
+
+    - name: Upload ghost-qa report artifacts
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: ghost-qa-report
+        path: ${{ inputs.out-dir }}
+        if-no-files-found: ignore

@@ -6,6 +6,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { runGhostQAAudit, GHOST_QA_VERSION } from '../src/engine/audit-runner.js';
 import { ManagedDevServer } from '../src/engine/server-lifecycle.js';
 import { mcpServerConfig, runDoctorCheck, startMcpServer } from '../src/mcp/server.js';
+import { claudePluginManifest, cursorRuleContent, openCodeMcpEntry, vscodeMcpConfig, zedContextServerEntry, } from '../src/agents/integrations.js';
 import { compareReports, formatCompareReport } from '../src/engine/compare.js';
 import { formatAgentDiagnostic, formatDiagnostic, formatPatchPrompt } from '../src/reporter/agent-diagnostic.js';
 import { formatHtmlReport } from '../src/reporter/html-report.js';
@@ -300,6 +301,7 @@ async function loadSkillTemplate() {
     return FALLBACK_SKILL;
 }
 async function upsertProtocol(filePath) {
+    await mkdir(dirname(filePath), { recursive: true });
     let existing = '';
     try {
         existing = await readFile(filePath, 'utf8');
@@ -320,25 +322,124 @@ async function upsertProtocol(filePath) {
     await writeFile(filePath, `${existing.replace(/\s*$/, '')}\n\n${AGENT_PROTOCOL}\n`, 'utf8');
     return 'updated';
 }
+async function readJsonObject(filePath) {
+    try {
+        const parsed = JSON.parse(await readFile(filePath, 'utf8'));
+        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+            return parsed;
+        }
+    }
+    catch {
+        /* missing or invalid JSON starts from an empty object */
+    }
+    return {};
+}
+async function writeJsonObject(filePath, value) {
+    await mkdir(dirname(filePath), { recursive: true });
+    await writeFile(filePath, `${JSON.stringify(value, null, 2)}\n`, 'utf8');
+}
+/**
+ * Merges one key into a JSON config file, preserving everything the user
+ * already had (other MCP servers, editor settings…). Idempotent: returns
+ * 'already configured' when the desired value is already present.
+ */
+async function mergeJsonKey(filePath, sectionKey, entryKey, desired) {
+    const existed = existsSync(filePath);
+    const root = await readJsonObject(filePath);
+    const section = sectionKey === null
+        ? root
+        : (root[sectionKey] ?? {});
+    if (sectionKey !== null)
+        root[sectionKey] = section;
+    const previous = section[entryKey];
+    if (previous !== undefined && JSON.stringify(previous) === JSON.stringify(desired)) {
+        return 'already configured';
+    }
+    section[entryKey] = desired;
+    await writeJsonObject(filePath, root);
+    return previous !== undefined ? 'updated' : existed ? 'merged' : 'installed';
+}
+async function writeTextIfNeeded(filePath, content, force) {
+    const existed = existsSync(filePath);
+    if (existed && !force) {
+        const current = await readFile(filePath, 'utf8').catch(() => '');
+        if (current === content)
+            return 'already configured';
+        return 'already exists (use --force to overwrite)';
+    }
+    await mkdir(dirname(filePath), { recursive: true });
+    await writeFile(filePath, content, 'utf8');
+    return existed ? 'updated (--force)' : 'installed';
+}
+async function installSkillFile(targetDir, relativePath, skillContent, force, results) {
+    const filePath = join(targetDir, relativePath);
+    const action = await writeTextIfNeeded(filePath, skillContent.endsWith('\n') ? skillContent : `${skillContent}\n`, force);
+    results.push({ file: relativePath, action });
+}
+/**
+ * Connects ghost-qa to every major coding agent, in each one's native
+ * dialect — all idempotent, all preserving existing user config:
+ *
+ * 1. Claude Code:    .mcp.json, CLAUDE.md, .claude/skills/ghost-qa/SKILL.md,
+ *                    .claude-plugin/plugin.json
+ * 2. OpenCode:       opencode.json (mcp), AGENTS.md
+ * 3. Codex/universal: AGENTS.md, .agents/skills/ghost-qa/SKILL.md
+ * 4. Cursor:         .cursor/mcp.json, .cursor/rules/ghost-qa.mdc, .cursorrules
+ * 5. Windsurf:       .windsurfrules
+ * 6. VS Code/Copilot: .vscode/mcp.json, .github/copilot-instructions.md
+ * 7. Cline/Roo:      .clinerules
+ * 8. Zed:            .zed/settings.json (context_servers)
+ */
 export async function installSkill(targetDir, force = false) {
     const results = [];
-    const skillPath = join(targetDir, '.claude', 'skills', 'ghost-qa', 'SKILL.md');
-    await mkdir(dirname(skillPath), { recursive: true });
     const skillContent = await loadSkillTemplate();
-    const skillExisted = existsSync(skillPath);
-    if (!skillExisted || force) {
-        await writeFile(skillPath, skillContent.endsWith('\n') ? skillContent : `${skillContent}\n`, 'utf8');
-        results.push({ file: '.claude/skills/ghost-qa/SKILL.md', action: skillExisted ? 'updated (--force)' : 'installed' });
+    // 1 + 3 — Agent Skills (Claude Code + universal .agents skills)
+    await installSkillFile(targetDir, join('.claude', 'skills', 'ghost-qa', 'SKILL.md'), skillContent, force, results);
+    await installSkillFile(targetDir, join('.agents', 'skills', 'ghost-qa', 'SKILL.md'), skillContent, force, results);
+    // 1 — Claude Code MCP config (root .mcp.json)
+    const mcpAction = await installMcpConfig(join(targetDir, '.mcp.json'), force);
+    results.push({ file: '.mcp.json', action: mcpAction });
+    // 1 — Claude Code plugin manifest
+    const pluginPath = join(targetDir, '.claude-plugin', 'plugin.json');
+    const pluginExisted = existsSync(pluginPath);
+    if (!pluginExisted || force) {
+        await writeJsonObject(pluginPath, claudePluginManifest());
+        results.push({ file: '.claude-plugin/plugin.json', action: pluginExisted ? 'updated (--force)' : 'installed' });
     }
     else {
-        results.push({ file: '.claude/skills/ghost-qa/SKILL.md', action: 'already exists (use --force to overwrite)' });
+        results.push({ file: '.claude-plugin/plugin.json', action: 'already exists (use --force to overwrite)' });
     }
-    for (const name of ['CLAUDE.md', 'AGENTS.md', '.cursorrules']) {
+    // 2 — OpenCode (merges under `mcp`, sets the $schema on fresh files)
+    const opencodePath = join(targetDir, 'opencode.json');
+    if (!existsSync(opencodePath)) {
+        await writeJsonObject(opencodePath, { $schema: 'https://opencode.ai/config.json' });
+    }
+    results.push({ file: 'opencode.json', action: await mergeJsonKey(opencodePath, 'mcp', 'ghost-qa', openCodeMcpEntry()) });
+    // 4 — Cursor MCP config + rule
+    results.push({
+        file: '.cursor/mcp.json',
+        action: await mergeJsonKey(join(targetDir, '.cursor', 'mcp.json'), 'mcpServers', 'ghost-qa', mcpServerConfig().mcpServers['ghost-qa']),
+    });
+    results.push({
+        file: '.cursor/rules/ghost-qa.mdc',
+        action: await writeTextIfNeeded(join(targetDir, '.cursor', 'rules', 'ghost-qa.mdc'), cursorRuleContent(AGENT_PROTOCOL), force),
+    });
+    // 6 — VS Code / GitHub Copilot MCP config (`servers` dialect)
+    results.push({
+        file: '.vscode/mcp.json',
+        action: await mergeJsonKey(join(targetDir, '.vscode', 'mcp.json'), 'servers', 'ghost-qa', vscodeMcpConfig().servers['ghost-qa']),
+    });
+    // 8 — Zed context servers (preserves all other editor settings)
+    results.push({
+        file: '.zed/settings.json',
+        action: await mergeJsonKey(join(targetDir, '.zed', 'settings.json'), 'context_servers', 'ghost-qa', zedContextServerEntry()),
+    });
+    // 1/2/3/4/5/6/7 — marker-delimited Staff QA Engineer Protocol in every
+    // instruction-file dialect (created or upserted in place, never duplicated)
+    for (const name of ['CLAUDE.md', 'AGENTS.md', '.cursorrules', '.windsurfrules', '.clinerules', join('.github', 'copilot-instructions.md')]) {
         const action = await upsertProtocol(join(targetDir, name));
         results.push({ file: name, action: `protocol ${action}` });
     }
-    const mcpAction = await installMcpConfig(join(targetDir, '.mcp.json'), force);
-    results.push({ file: '.mcp.json', action: mcpAction });
     return results;
 }
 /**
@@ -381,7 +482,7 @@ async function runInit(args) {
         process.stdout.write(`  • ${result.file} — ${result.action}\n`);
     }
     process.stdout.write('\nYour coding agent will now run `npx -y ghost-qa test <local-url>` and fix browser failures before reporting a task complete.\n' +
-        'MCP hosts (Claude Code, Claude Desktop, Cursor, Codex) can also call the ghost_qa_audit_url / ghost_qa_doctor / ghost_qa_compare tools directly via the .mcp.json entry above.\n');
+        'Connected agents: Claude Code (.mcp.json, CLAUDE.md, .claude/skills, .claude-plugin), OpenCode (opencode.json), Codex & universal agents (AGENTS.md, .agents/skills), Cursor (.cursor/mcp.json + rules), Windsurf (.windsurfrules), VS Code/Copilot (.vscode/mcp.json, copilot-instructions), Cline/Roo (.clinerules) and Zed (.zed/settings.json) can call ghost_qa_audit_url / ghost_qa_doctor / ghost_qa_compare.\n');
     return 0;
 }
 async function runDoctor() {

@@ -11,6 +11,8 @@ All notable changes to ghost-qa are documented here. Format follows [Keep a Chan
 - **Artifact bundle** via `--out-dir`: `report.json`, `GHOST-QA-REPORT.md`, `PATCH-PROMPT.md`, and an interactive self-contained `report.html` dashboard (grade hero, 8-Trap Scorecard, Route & Viewport Matrix, filterable findings, optional `--screenshots` embeds).
 - **Regression diffing**: `ghost-qa compare <before.json> <after.json>` CLI and `ghost_qa_compare` MCP tool produce the Regression & Verification Delta Report (`scoreDelta`, `fixedFindings`, `newRegressions`, `remainingFindings`).
 - `SKILL.md` rewritten as the 5-phase Autonomous Staff QA Engineer Protocol (doctor → baseline → DOM-to-source mapping → remediation → delta verification until 95–100/A+).
+- **GitHub Marketplace Action** (`action.yml`, `uses: avivgerz-hue/ghost-qa@v2`): composite action that installs matching Playwright Chromium, runs the pinned v2 CLI with url/cmd/fail-on/out-dir/screenshots inputs, and uploads the report bundle.
+- **Universal agent integrations**: `ghost-qa init` now connects Claude Code (`.mcp.json`, `CLAUDE.md`, `.claude/skills`, `.claude-plugin/plugin.json`), OpenCode (`opencode.json`), Codex/universal agents (`AGENTS.md`, `.agents/skills`), Cursor (`.cursor/mcp.json`, `.cursor/rules/ghost-qa.mdc`), Windsurf (`.windsurfrules`), VS Code/Copilot (`.vscode/mcp.json`, copilot-instructions), Cline/Roo (`.clinerules`) and Zed (`.zed/settings.json`) — idempotently, preserving existing config. This repo dogfoods root `AGENTS.md`, `CLAUDE.md`, `opencode.json` and `.claude-plugin/plugin.json`.
 
 ### Changed
 - **Version is now loaded dynamically from `package.json`** (`src/engine/version.ts`, fallback `2.0.0`) so `--version` can never lag a publish again.

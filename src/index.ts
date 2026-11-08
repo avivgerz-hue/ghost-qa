@@ -19,3 +19,4 @@ export * from './reporter/terminal-summary.js';
 export * from './reporter/agent-diagnostic.js';
 export * from './reporter/html-report.js';
 export * from './mcp/server.js';
+export * from './agents/integrations.js';

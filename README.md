@@ -280,13 +280,46 @@ Works with any stack that serves HTML on localhost — Next.js, Vite, Remix, Ast
 
 ## 🤖 The Agent Skill
 
-`SKILL.md` (repo root) is the master skill. `npx -y ghost-qa init` installs it for:
+`SKILL.md` (repo root) is the master **Staff QA Engineer Protocol**. One command — `npx -y ghost-qa init` — connects it, plus the 8-trap MCP server, into every major coding agent in its native dialect. All writes are idempotent (marker-delimited protocol blocks, JSON merges that preserve your existing servers/settings):
 
-- **Claude Code** → `.claude/skills/ghost-qa/SKILL.md` + protocol in `CLAUDE.md`
-- **Codex / generic agents** → protocol in `AGENTS.md`
-- **Cursor / Windsurf** → protocol in `.cursorrules`
+## 🔌 Supported Coding Agents (Claude Code, OpenCode, Codex, Cursor, Windsurf, Copilot, Cline, Zed)
 
-The protocol is wrapped in `<!-- ghost-qa:start/end -->` markers, so re-running `init` updates it in place without duplicating or clobbering your other instructions.
+| Agent | What `ghost-qa init` installs |
+| --- | --- |
+| **Claude Code** | `.mcp.json`, `CLAUDE.md`, `.claude/skills/ghost-qa/SKILL.md`, `.claude-plugin/plugin.json` |
+| **OpenCode** | `opencode.json` (`mcp` → ghost-qa), `AGENTS.md` |
+| **OpenAI Codex CLI & universal agents** | `AGENTS.md`, `.agents/skills/ghost-qa/SKILL.md` |
+| **Cursor** | `.cursor/mcp.json`, `.cursor/rules/ghost-qa.mdc`, `.cursorrules` |
+| **Windsurf** | `.windsurfrules` |
+| **VS Code / GitHub Copilot** | `.vscode/mcp.json`, `.github/copilot-instructions.md` |
+| **Cline / Roo Code** | `.clinerules` |
+| **Zed** | `.zed/settings.json` (`context_servers` → ghost-qa) |
+
+Every dialect wires the same MCP command (`npx -y ghost-qa mcp`) and the same 5-phase protocol: doctor → baseline audit → DOM-to-source mapping → remediation → `ghost_qa_compare` delta verification until QA Health Score 95–100. This repo dogfoods it: root `AGENTS.md`, `CLAUDE.md`, `opencode.json`, and `.claude-plugin/plugin.json` are committed, so Claude Code, OpenCode, and Codex CLI auto-discover ghost-qa here immediately.
+
+## ⚙️ GitHub Actions CI (`uses: avivgerz-hue/ghost-qa@v2`)
+
+Run ghost-qa in any repository's CI with the official composite action (Marketplace-ready, `action.yml` in this repo):
+
+```yaml
+name: Browser QA
+on: [pull_request]
+jobs:
+  ghost-qa:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Autonomous browser QA
+        uses: avivgerz-hue/ghost-qa@v2
+        with:
+          url: "http://localhost:3000"   # default
+          cmd: "npm run dev"            # optional: ghost-qa spawns/waits/kills your dev server
+          fail-on: "high"               # high=critical · medium=major · low=minor (default high)
+          out-dir: ".ghost-qa"          # report.json, GHOST-QA-REPORT.md, PATCH-PROMPT.md, report.html
+          screenshots: "false"          # "true" embeds route screenshots in report.html
+```
+
+The action sets up Node 20, installs the matching Playwright Chromium if needed, runs `npx -y ghost-qa@2.0.0 test …`, and uploads the report bundle as a workflow artifact — the job fails on any finding at or above your `fail-on` gate.
 
 ## ⚖️ Scope & limitations (read this — we mean it)
 
