@@ -48,7 +48,7 @@ runs:
           TMP_DIR="$(mktemp -d)"
           # Install ghost-qa into a scratch prefix so the Chromium build
           # matches the exact Playwright revision ghost-qa runs with.
-          npm install --prefix "$TMP_DIR" --ignore-scripts --no-audit --no-fund ghost-qa@2.0.0
+          npm install --prefix "$TMP_DIR" --ignore-scripts --no-audit --no-fund ghost-qa@2.1.0
           node "$TMP_DIR/node_modules/playwright/cli.js" install --with-deps chromium
         else
           echo "Chromium already present — skipping install."
@@ -73,7 +73,7 @@ runs:
         ARGS=(test "$GHOST_QA_URL" --fail-on "$FAIL_ON" --out-dir "$GHOST_QA_OUT_DIR")
         if [ "$GHOST_QA_SCREENSHOTS" = "true" ]; then ARGS+=(--screenshots); fi
         if [ -n "$GHOST_QA_CMD" ]; then ARGS+=(--server-cmd "$GHOST_QA_CMD"); fi
-        npx -y ghost-qa@2.0.0 "${ARGS[@]}"
+        npx -y ghost-qa@2.1.0 "${ARGS[@]}"
 
     - name: Upload ghost-qa report artifacts
       if: always()

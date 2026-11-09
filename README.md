@@ -25,6 +25,10 @@ No test scripts. No config. No mercy for "it works on my machine".
 
 ---
 
+## 🎮 Interactive Live Demo
+
+**[▶ Explore the 8-Trap Live Demo & Report Explorer](https://avivgerz-hue.github.io/ghost-qa/)** — flip between a broken "Vibe-Coded App" (Score 38, Grade F) and its self-healed twin (Score 100, Grade A+) across Desktop, Tablet and Mobile in Light & Dark, generate your copy-paste GitHub Action / agent configs, and grab a **Ghost-QA Verified** badge for your README. (Source: [`docs/index.html`](./docs/index.html), ready for GitHub Pages.)
+
 ## ⚡ Quickstart
 
 ```bash

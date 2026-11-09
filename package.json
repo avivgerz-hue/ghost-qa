@@ -1,6 +1,6 @@
 {
   "name": "ghost-qa",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Autonomous headless browser QA & self-healing verification loop for coding agents. 8-trap deep inspection (console, network, layout, WCAG a11y + keyboard focus, Core Web Vitals, links, SEO, theme parity) across desktop/tablet/mobile in light + dark, QA Health Score (A+ to F), interactive HTML dashboard, and regression diffing (ghost_qa_compare).",
   "type": "module",
   "bin": {

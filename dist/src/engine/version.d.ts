@@ -9,6 +9,6 @@
  * (exotic bundling), which keeps `GHOST_QA_VERSION` total and side-effect
  * safe.
  */
-export declare const FALLBACK_VERSION = "2.0.0";
+export declare const FALLBACK_VERSION = "2.1.0";
 export declare const GHOST_QA_VERSION: string;
 //# sourceMappingURL=version.d.ts.map

@@ -1,4 +1,5 @@
 import type { GhostQAReport, QAIssue } from '../types.js';
+import { formatStarCta } from './star-cta.js';
 
 const useColor = (): boolean =>
   process.stdout.isTTY === true && process.env.NO_COLOR === undefined && process.env.TERM !== 'dumb';
@@ -87,6 +88,7 @@ export function formatTerminalSummary(report: GhostQAReport): string {
     lines.push(dim('  Agent: read the Self-Healing Bug Report (ghost-qa-report.md / --json) and fix each issue by id.'));
   }
   lines.push('');
+  lines.push(formatStarCta(report.health?.grade));
   return lines.join('\n');
 }
 

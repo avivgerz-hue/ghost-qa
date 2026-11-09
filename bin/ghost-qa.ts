@@ -16,6 +16,7 @@ import {
 import { compareReports, formatCompareReport } from '../src/engine/compare.js';
 import { formatAgentDiagnostic, formatDiagnostic, formatPatchPrompt } from '../src/reporter/agent-diagnostic.js';
 import { formatHtmlReport } from '../src/reporter/html-report.js';
+import { formatStarCta } from '../src/reporter/star-cta.js';
 import { formatTerminalSummary } from '../src/reporter/terminal-summary.js';
 import { DEFAULT_OPTIONS, type GhostQAOptions } from '../src/types.js';
 
@@ -271,11 +272,12 @@ async function runCompare(args: string[]): Promise<number> {
   };
   const delta = compareReports(await load(parsed.beforeFile), await load(parsed.afterFile));
   const rendered = parsed.json ? `${JSON.stringify(delta, null, 2)}\n` : formatCompareReport(delta);
+  const humanOutput = parsed.json ? rendered : `${rendered}\n${formatStarCta(delta.afterGrade)}\n`;
   if (parsed.outFile) {
-    await writeFile(resolve(parsed.outFile), rendered, 'utf8');
+    await writeFile(resolve(parsed.outFile), humanOutput, 'utf8');
     process.stdout.write(`Delta report written to ${parsed.outFile}\n`);
   } else {
-    process.stdout.write(rendered);
+    process.stdout.write(humanOutput);
   }
   return delta.newRegressions.length > 0 ? 1 : 0;
 }
@@ -532,6 +534,7 @@ async function runInit(args: string[]): Promise<number> {
   for (const result of results) {
     process.stdout.write(`  • ${result.file} — ${result.action}\n`);
   }
+  process.stdout.write(`${formatStarCta()}\n`);
   process.stdout.write(
     '\nYour coding agent will now run `npx -y ghost-qa test <local-url>` and fix browser failures before reporting a task complete.\n' +
       'Connected agents: Claude Code (.mcp.json, CLAUDE.md, .claude/skills, .claude-plugin), OpenCode (opencode.json), Codex & universal agents (AGENTS.md, .agents/skills), Cursor (.cursor/mcp.json + rules), Windsurf (.windsurfrules), VS Code/Copilot (.vscode/mcp.json, copilot-instructions), Cline/Roo (.clinerules) and Zed (.zed/settings.json) can call ghost_qa_audit_url / ghost_qa_doctor / ghost_qa_compare.\n',
@@ -557,6 +560,7 @@ async function runDoctor(): Promise<number> {
       ? '\n✔ ghost-qa is ready: npx -y ghost-qa test http://localhost:3000\n'
       : '\n✖ Setup incomplete — fix the items above.\n',
   );
+  process.stdout.write(`\n${formatStarCta()}\n`);
   return result.ready ? 0 : 1;
 }
 

@@ -2,6 +2,13 @@
 
 All notable changes to ghost-qa are documented here. Format follows [Keep a Changelog](https://keepachangelog.com), versions follow [SemVer](https://semver.org).
 
+## [2.1.0] — 2026-11-09
+
+### Added
+- **Terminal Star CTA & QA Verified badge**: human-readable `test`, `compare`, `doctor` and `init` output (and the `report.html` header/footer) now closes with a star call-to-action (`gh repo star avivgerz-hue/ghost-qa`) plus a copy-pasteable `Ghost-QA Verified` README badge showing the run's QA Health Grade. Never emitted in `--json` or MCP stdio output (both covered by hygiene tests).
+- **Interactive GitHub Pages demo** (`docs/index.html`): self-contained 8-Trap Live Demo & Report Explorer — switch between the broken Vibe-Coded App (Score 38, Grade F) and the Self-Healed App (Score 100, Grade A+) across Desktop/Tablet/Mobile in Light & Dark, with a Command & GitHub Action Configurator (npx / action.yml / 8-agent init, 1-tap copy), a Copy QA Badge generator, and prominent star CTAs.
+- `action.yml` now runs the pinned `ghost-qa@2.1.0` CLI.
+
 ## [2.0.0] — 2026-11-08
 
 ### Added

@@ -50,7 +50,7 @@ describe('GitHub Marketplace action.yml', () => {
 
   it('installs Chromium if needed and runs the pinned v2 CLI', () => {
     expect(action).toContain('playwright/cli.js" install --with-deps chromium');
-    expect(action).toContain('npx -y ghost-qa@2.0.0');
+    expect(action).toContain('npx -y ghost-qa@2.1.0');
     expect(action).toContain('--server-cmd');
     expect(action).toContain('--out-dir');
     expect(action).toContain('--screenshots');
