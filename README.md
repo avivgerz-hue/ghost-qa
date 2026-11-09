@@ -25,10 +25,6 @@ No test scripts. No config. No mercy for "it works on my machine".
 
 ---
 
-## 🎮 Interactive Live Demo
-
-**[▶ Explore the 8-Trap Live Demo & Report Explorer](https://avivgerz-hue.github.io/ghost-qa/)** — flip between a broken "Vibe-Coded App" (Score 38, Grade F) and its self-healed twin (Score 100, Grade A+) across Desktop, Tablet and Mobile in Light & Dark, generate your copy-paste GitHub Action / agent configs, and grab a **Ghost-QA Verified** badge for your README. (Source: [`docs/index.html`](./docs/index.html), ready for GitHub Pages.)
-
 ## ⚡ Quickstart
 
 ```bash
@@ -300,30 +296,6 @@ Works with any stack that serves HTML on localhost — Next.js, Vite, Remix, Ast
 | **Zed** | `.zed/settings.json` (`context_servers` → ghost-qa) |
 
 Every dialect wires the same MCP command (`npx -y ghost-qa mcp`) and the same 5-phase protocol: doctor → baseline audit → DOM-to-source mapping → remediation → `ghost_qa_compare` delta verification until QA Health Score 95–100. This repo dogfoods it: root `AGENTS.md`, `CLAUDE.md`, `opencode.json`, and `.claude-plugin/plugin.json` are committed, so Claude Code, OpenCode, and Codex CLI auto-discover ghost-qa here immediately.
-
-## ⚙️ GitHub Actions CI (`uses: avivgerz-hue/ghost-qa@v2`)
-
-Run ghost-qa in any repository's CI with the official composite action (Marketplace-ready, `action.yml` in this repo):
-
-```yaml
-name: Browser QA
-on: [pull_request]
-jobs:
-  ghost-qa:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Autonomous browser QA
-        uses: avivgerz-hue/ghost-qa@v2
-        with:
-          url: "http://localhost:3000"   # default
-          cmd: "npm run dev"            # optional: ghost-qa spawns/waits/kills your dev server
-          fail-on: "high"               # high=critical · medium=major · low=minor (default high)
-          out-dir: ".ghost-qa"          # report.json, GHOST-QA-REPORT.md, PATCH-PROMPT.md, report.html
-          screenshots: "false"          # "true" embeds route screenshots in report.html
-```
-
-The action sets up Node 20, installs the matching Playwright Chromium if needed, runs `npx -y ghost-qa@2.0.0 test …`, and uploads the report bundle as a workflow artifact — the job fails on any finding at or above your `fail-on` gate.
 
 ## ⚖️ Scope & limitations (read this — we mean it)
 

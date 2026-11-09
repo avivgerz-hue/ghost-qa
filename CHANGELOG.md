@@ -2,6 +2,14 @@
 
 All notable changes to ghost-qa are documented here. Format follows [Keep a Changelog](https://keepachangelog.com), versions follow [SemVer](https://semver.org).
 
+## [Unreleased]
+
+### Removed
+- `docs/index.html` GitHub Pages demo and the root `action.yml` (its mere presence made GitHub render a "Use this GitHub action with your project" banner on the repo homepage). README links and guard tests referencing them were removed; the v2.1.0 Star CTA and all 8 agent integrations are unchanged.
+
+### Added
+- `SKILL.md` **DOM-to-Component Fix Playbooks** for the top 8-Trap failures: mobile horizontal overflow, bounding-box collisions, <44×44px touch targets (responsive `min-h-11 min-w-11 md:min-h-9` pattern), invisible dark-mode text (theme tokens), and React/Next.js hydration mismatches.
+
 ## [2.1.0] — 2026-11-09
 
 ### Added

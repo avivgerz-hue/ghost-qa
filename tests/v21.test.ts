@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { badgeColorForGrade, badgeMarkdownForGrade, formatStarCta, GITHUB_REPO_URL } from '../src/reporter/star-cta.js';
@@ -88,49 +88,5 @@ describe('HTML report carries the CTA + badge in header and footer', () => {
     expect(html).toContain('gh repo star avivgerz-hue/ghost-qa');
     expect(html).toContain('Ghost--QA-Grade_A%2B-10b981');
     expect(html).not.toMatch(/<script src=|<link rel="stylesheet" href=/);
-  });
-});
-
-describe('docs/index.html — GitHub Pages live demo', () => {
-  const docs = readText('docs/index.html');
-
-  it('exists and is fully self-contained (zero backend, no external assets)', () => {
-    expect(existsSync(join(root, 'docs', 'index.html'))).toBe(true);
-    expect(docs).toContain('<!doctype html>');
-    expect(docs).not.toMatch(/<script src=|<link[^>]+rel="stylesheet"/);
-    expect(docs).not.toContain('fetch(');
-  });
-
-  it('showcases the broken vs self-healed 8-trap multi-viewport audit', () => {
-    expect(docs).toContain('>38</span>');
-    expect(docs).toContain('score: 100');
-    expect(docs).toContain('Vibe-Coded App');
-    expect(docs).toContain('Self-Healed App');
-    expect(docs).toContain('1440×900');
-    expect(docs).toContain('768×1024');
-    expect(docs).toContain('375×812');
-    expect(docs).toContain('Grade F');
-    expect(docs).toContain('Grade A+');
-    expect(docs).toContain('hydration');
-    expect(docs).toContain('HTTP 500');
-  });
-
-  it('has the configurator, badge generator and star button', () => {
-    expect(docs).toContain('Configurator');
-    expect(docs).toContain('npx -y ghost-qa test');
-    expect(docs).toContain('avivgerz-hue/ghost-qa@v2');
-    expect(docs).toContain('Copy QA Badge');
-    expect(docs).toContain('Ghost--QA-Grade_');
-    expect(docs).toContain('★ Star avivgerz-hue/ghost-qa on GitHub');
-    expect(docs).toContain('gh repo star avivgerz-hue/ghost-qa');
-    expect(docs).toContain('data-copy-target');
-  });
-});
-
-describe('v2.1.0 release wiring', () => {
-  it('action.yml runs the pinned 2.1.0 CLI', () => {
-    const action = readText('action.yml');
-    expect(action).toContain('ghost-qa@2.1.0');
-    expect(action).not.toContain('ghost-qa@2.0.0');
   });
 });

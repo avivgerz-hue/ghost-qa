@@ -17,46 +17,6 @@ const readText = (path: string): string => readFileSync(path, 'utf8');
 const readJson = (path: string): Record<string, unknown> => JSON.parse(readText(path)) as Record<string, unknown>;
 const root = process.cwd();
 
-describe('GitHub Marketplace action.yml', () => {
-  const action = readText(join(root, 'action.yml'));
-
-  it('meets Marketplace name/description limits (<125 chars)', () => {
-    expect(action).toContain('name: "Ghost-QA — Autonomous Browser QA"');
-    const description = action.match(/^description: "(.+)"$/m)?.[1] ?? '';
-    expect(description).toBe(
-      'Autonomous 8-trap headless browser QA engine for Desktop, Tablet & Mobile across Light and Dark themes.',
-    );
-    expect(description.length).toBeLessThan(125);
-  });
-
-  it('carries Marketplace branding and the composite runtime', () => {
-    expect(action).toContain('branding:');
-    expect(action).toContain('icon: "check-circle"');
-    expect(action).toContain('color: "green"');
-    expect(action).toContain('using: "composite"');
-    expect(action).toContain('actions/setup-node@v4');
-    expect(action).toContain('actions/upload-artifact@v4');
-  });
-
-  it('declares the required inputs with spec defaults', () => {
-    for (const input of ['url:', 'cmd:', 'fail-on:', 'out-dir:', 'screenshots:']) {
-      expect(action, input).toContain(input);
-    }
-    expect(action).toContain('default: "http://localhost:3000"');
-    expect(action).toContain('default: "high"');
-    expect(action).toContain('default: ".ghost-qa"');
-    expect(action).toContain('default: "false"');
-  });
-
-  it('installs Chromium if needed and runs the pinned v2 CLI', () => {
-    expect(action).toContain('playwright/cli.js" install --with-deps chromium');
-    expect(action).toContain('npx -y ghost-qa@2.1.0');
-    expect(action).toContain('--server-cmd');
-    expect(action).toContain('--out-dir');
-    expect(action).toContain('--screenshots');
-  });
-});
-
 describe('universal agent config generators', () => {
   it('produce each ecosystem dialect around the same MCP command', () => {
     expect(openCodeConfig().mcp['ghost-qa']).toEqual({
@@ -147,15 +107,13 @@ describe('ghost-qa init — universal agent installation', () => {
   });
 });
 
-describe('README documents the universal integrations + GitHub Action', () => {
+describe('README documents the universal integrations', () => {
   const readme = readText(join(root, 'README.md'));
   it('has the supported-agents table and the CI action section', () => {
     expect(readme).toContain('Supported Coding Agents (Claude Code, OpenCode, Codex, Cursor, Windsurf, Copilot, Cline, Zed)');
     for (const agent of ['**Claude Code**', '**OpenCode**', '**Cursor**', '**Windsurf**', '**VS Code / GitHub Copilot**', '**Cline / Roo Code**', '**Zed**']) {
       expect(readme, agent).toContain(agent);
     }
-    expect(readme).toContain('uses: avivgerz-hue/ghost-qa@v2');
-    expect(readme).toContain('GitHub Actions CI');
   });
 });
 

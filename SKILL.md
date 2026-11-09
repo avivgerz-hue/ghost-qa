@@ -81,6 +81,64 @@ Fix root causes, one finding at a time, in severity order (critical → major �
 
 **Anti-cheating rules (absolute):** never delete failing UI, never loosen the checker, never hide elements from the traps, never stub network responses. Fixing the checker instead of the bug is a failed task.
 
+## DOM-to-Component Fix Playbooks (the failures you will actually meet)
+
+Use these in Phase 4. Each playbook starts from what the report hands you — **selector + bounding box + viewport + trap** — and ends at the component you must edit. Never guess: reproduce with the selector first (`document.querySelector('<selector>')` in DevTools), then find its source component by searching for the id / `data-testid` / class / visible text.
+
+### Playbook A — Mobile horizontal overflow (`scrollWidth > innerWidth`) · Trap 3 (Layout)
+
+**Signature:** `horizontal-overflow` on mobile/tablet; the finding names the overflowing elements and their boxes (right edge ≫ 375 or 768).
+
+1. The element whose bounding box `x + width` exceeds the viewport width is your culprit — open its component.
+2. Hunt the usual causes, in this order: a fixed pixel width (`w-[500px]`, `width: 500px`), `100vw` on an element inside a padded/scrollable ancestor (adds the scrollbar width), a flex/grid child that refuses to shrink, negative margins, or an absolutely-positioned decorative blob.
+3. **Fix at the component:** let flex/grid children shrink and cap widths instead of forcing them:
+   - Tailwind: add `min-w-0` to the flex/grid child, `max-w-full` on the wide element, and replace `w-screen`/`100vw` with `w-full`. For text that must not push layout: `truncate` or `break-words`.
+   - Vanilla CSS: `min-width: 0` on the flex item, `max-width: 100%`, `box-sizing: border-box`, and `overflow-x: clip` on the *page shell only as a last-resort guardrail* — masking with `overflow-x: hidden` on `body` without fixing the child is cheating: the trap also flags the still-overflowing element's box.
+4. Re-check the same selector's box at 375×812 in the delta run: its right edge must be ≤ viewport width on every viewport.
+
+### Playbook B — Bounding-box button collisions (overlapping interactives) · Trap 3 (Layout)
+
+**Signature:** `element-collision` naming **both** selectors and the first element's bounding box; the two boxes intersect by > 4px in both axes.
+
+1. Inspect both components. Overlaps almost always come from: a floating action button / chat bubble positioned over a CTA, a sticky header covering anchored content, a badge/avatar absolutely positioned beyond its parent, or two elements competing in the same grid cell.
+2. **Fix the stacking, not the checker:** give the layout room to breathe — move the floater (`bottom-24` instead of `bottom-4` over a footer CTA), add scroll-margin to anchored sections (`scroll-mt-24`), place the badge inside flow (`relative` parent + contained offsets that don't cross the neighbouring control), or assign explicit grid areas so siblings can't share a cell. If one element is *supposed* to overlay (modal, tooltip), the interactive element beneath must not remain clickable — `pointer-events-none` on the covered control or trap focus inside the modal.
+3. Done when the delta shows the collision gone on **every** viewport — collisions often exist only at 375px where the layout compresses.
+
+### Playbook C — Touch targets `< 44×44px` without breaking desktop density · Trap 3 (Layout)
+
+**Signature:** `small-touch-target` with the exact box (e.g. `38×20px`) on mobile/tablet. Desktop has no such requirement — dense desktop UIs are fine, so **fix responsively, never globally**.
+
+1. Find the component by selector. Icon buttons, compact table-row actions, pagination links and chip close-buttons are the repeat offenders.
+2. Grow the *hit area*, not necessarily the visual: padding and min-size on touch viewports, relaxing at `md:` where density is welcome:
+   - Tailwind icon button: `class="inline-flex items-center justify-center min-h-11 min-w-11 md:min-h-9 md:min-w-9"` — 44px (11 × 4px) on mobile, 36px on desktop. Keep the icon itself small (`h-5 w-5`); it's the target that must be 44px.
+   - Text links in lists/menus: `class="inline-flex items-center min-h-11 md:min-h-9 px-2"`.
+   - Vanilla CSS: `min-height: 44px; min-width: 44px;` inside `@media (pointer: coarse)`, or expand with a pseudo-element hit-slop (`position: relative` + `::after { content:""; position:absolute; inset:-10px; }`) when visual spacing is locked by design.
+3. **Anti-patterns:** scaling the whole UI up on mobile, `zoom`, or making desktop airy to satisfy a mobile rule. Verify: trap silent at 375×812 and 768×1024, desktop rendering unchanged.
+
+### Playbook D — Invisible dark-mode text · Trap 8 (Theme Parity)
+
+**Signature:** `theme-contrast` tagged `colorScheme: dark` (or `light`), with selector, ratio (e.g. `1.3:1, needs 4.5:1`) and box. The text is perfectly visible in *your* theme — that's the trap working as intended.
+
+1. Reproduce: DevTools → Rendering → emulate `prefers-color-scheme: dark`, then inspect the selector. You'll find a hard-coded colour: `color: #111`, `text-neutral-900`, an inline style, or an SVG `fill` that never flips — sitting on a background that *does* flip.
+2. **Fix with theme tokens at the component, never a one-off hex swap:**
+   - Tailwind: pair every colour with its dark variant — `text-neutral-900 dark:text-neutral-100`, `bg-white dark:bg-neutral-900`, `border-neutral-200 dark:border-neutral-800`. If you find yourself writing a bare `text-black`/`bg-white` inside a themed surface, that's the bug.
+   - CSS variables (design-token setups): define semantic tokens per scheme — `:root { --ink: #111827; --surface: #ffffff; }` and `@media (prefers-color-scheme: dark) { :root { --ink: #f3f4f6; --surface: #111827; } }` (or under your `[data-theme="dark"]` selector), then consume `color: var(--ink); background: var(--surface);`. Check images/SVGs too: `fill: currentColor` inherits the fixed token.
+   - Framework themes (next-themes, MUI, Chakra…): use the theme's text/background tokens (`text.primary`, `bg.paper`) instead of palette literals.
+3. Check **both** directions: a fix that only darkens dark-mode text can create a light-mode failure. The delta must show Trap 8 silent under *both* schemes, and Trap 4 (computed contrast) still clean.
+
+### Playbook E — React/Next.js hydration mismatches · Trap 1 (Console & Framework Runtime)
+
+**Signature:** `hydration-mismatch` (critical) with the first stack frames. Server HTML and first client render disagree — React discards the server DOM and re-renders, causing flicker and, in Next.js, hard errors.
+
+1. Read the diff text in the finding ("Text content did not match", "A tree hydrated but…"). The first app-owned stack frame names the component.
+2. Usual root causes, in order: rendering `Date.now()` / `new Date()` / `Math.random()` / locale-formatted dates during render; reading `window`/`localStorage`/cookies during render; user-agent or viewport-dependent markup; invalid HTML nesting the browser "fixes" differently from React (`<p>` inside `<p>`, `<div>` inside `<p>`, `<table>` without `<tbody>`, nested `<button>`/`<a>`); extensions injecting attributes (suppress *only* those, on the exact element, with a comment).
+3. **Fix by making first render deterministic and identical on both sides:**
+   - Client-only values: compute in `useEffect` + state, or lazy-init from an effect — never during the server render. Dates: format on the server and pass as props, or render a stable placeholder that fills in after mount.
+   - Client-only components: `next/dynamic` with `ssr: false`, or a mounted-gate (`const [mounted, setMounted] = useState(false); useEffect(() => setMounted(true), [])`) — keep the gate as small as possible so the rest of the page still SSRs.
+   - Fix the nesting: `<div>`/`<section>` instead of `<p>` wrappers, real `<tbody>`, one interactive element per control.
+4. **Forbidden:** adding `suppressHydrationWarning` to silence the trap (except the single-element browser-extension case above), deleting the dynamic content, or forcing `ssr: false` on whole pages to make the error disappear.
+5. Verify: Trap 1 silent on **all three viewports** (hydration is viewport-independent — if it only fires on one, suspect viewport-dependent markup) and no new `console-error` friends in the delta.
+
 ## Phase 5 — Closed-Loop Delta Verification (`ghost_qa_compare`)
 
 1. Re-run the identical audit (same URL/viewports) → save as **`after.json`**.
