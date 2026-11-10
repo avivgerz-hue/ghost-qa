@@ -1,6 +1,6 @@
 # 👻 ghost-qa
 
-**Autonomous headless browser QA & self-healing verification loop for coding agents.** `v2.1.0` — the 8-Trap Deep Browser Inspection Engine: 3 viewports × light/dark, QA Health Score (A+…F), interactive HTML dashboard, and regression diffing.
+**Autonomous headless browser QA & self-healing verification loop for coding agents.** `v2.1.1` — the 8-Trap Deep Browser Inspection Engine: 3 viewports × light/dark, QA Health Score (A+…F), interactive HTML dashboard, and regression diffing.
 
 [![CI](https://github.com/avivgerz-hue/ghost-qa/actions/workflows/ci.yml/badge.svg)](https://github.com/avivgerz-hue/ghost-qa/actions/workflows/ci.yml)
 [![npm version](https://img.shields.io/npm/v/ghost-qa.svg)](https://www.npmjs.com/package/ghost-qa)

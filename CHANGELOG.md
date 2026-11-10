@@ -2,9 +2,10 @@
 
 All notable changes to ghost-qa are documented here. Format follows [Keep a Changelog](https://keepachangelog.com), versions follow [SemVer](https://semver.org).
 
-## [Unreleased]
+## [2.1.1] — 2026-11-10
 
 ### Added
+- **Official MCP Registry readiness**: `package.json` now carries `"mcpName": "io.github.avivgerz-hue/ghost-qa"` (npm ownership verification), and `server.json` was rewritten to validate with **zero errors** against the official `server.schema.json` (2025-12-11) — the non-schema `tools` field was removed, the description is 85 chars (limit 100), and `packages[0]` is the exact runnable spec (`registryType: "npm"`, `identifier` = npm package name, `transport: {"type": "stdio"}`, `packageArguments: [{"type": "positional", "value": "mcp"}]`). Version synced at 2.1.1 across `package.json`, `package-lock.json`, `server.json`, `CITATION.cff` and the dogfood plugin manifest; guard-tested in `tests/registry-manifests.test.ts`.
 - **README "5-Second Rule" conversion top**: Star CTA callout directly under the badges, a compact **VibeFoundry Agent Suite** nav bar cross-linking unslop, vibe-shield and ghost-qa (so visitors can star all three), and `assets/demo.svg` — a self-contained, pure-CSS `@keyframes` animated terminal recording (types the real command, catches layout/theme/hydration/network bugs at 38/100 F, applies the SKILL.md playbooks, re-scores 100/100 A+, done in 6.4s) embedded above the fold with a 1-line copy-paste quickstart. Guard-tested in `tests/readme-top.test.ts`; no scripts or external assets.
 
 ### Removed

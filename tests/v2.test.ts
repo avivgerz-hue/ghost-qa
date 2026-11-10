@@ -46,11 +46,11 @@ function reportWith(issues: QAIssue[]): GhostQAReport {
 }
 
 describe('dynamic version loading (never lags package.json again)', () => {
-  it('GHOST_QA_VERSION is read from package.json and equals 2.1.0', () => {
+  it('GHOST_QA_VERSION is read from package.json and equals 2.1.1', () => {
     const pkg = JSON.parse(readFileSync(join(process.cwd(), 'package.json'), 'utf8')) as { version: string };
     expect(GHOST_QA_VERSION).toBe(pkg.version);
-    expect(GHOST_QA_VERSION).toBe('2.1.0');
-    expect(FALLBACK_VERSION).toBe('2.1.0');
+    expect(GHOST_QA_VERSION).toBe('2.1.1');
+    expect(FALLBACK_VERSION).toBe('2.1.1');
   });
 });
 

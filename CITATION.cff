@@ -13,11 +13,11 @@ abstract: >-
   Model Context Protocol (MCP) server.
 authors:
   - name: "VibeFoundry"
-version: 2.1.0
+version: 2.1.1
 license: MIT
 repository-code: "https://github.com/avivgerz-hue/ghost-qa"
 url: "https://github.com/avivgerz-hue/ghost-qa"
-date-released: 2026-11-09
+date-released: 2026-11-10
 keywords:
   - ai-agents
   - coding-agents

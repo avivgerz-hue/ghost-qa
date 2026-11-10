@@ -13,7 +13,7 @@ import { fileURLToPath } from 'node:url';
  * (exotic bundling), which keeps `GHOST_QA_VERSION` total and side-effect
  * safe.
  */
-export const FALLBACK_VERSION = '2.1.0';
+export const FALLBACK_VERSION = '2.1.1';
 
 function readPackageVersion(): string {
   const candidates: string[] = [];

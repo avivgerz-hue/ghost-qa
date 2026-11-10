@@ -30,7 +30,7 @@ describe('MCP registry manifests (smithery / glama / official registry)', () => 
     expect(yaml).toContain('commandFunction');
   });
 
-  it('glama.json names the maintainer, MIT license, and both MCP tools', () => {
+  it('glama.json names the maintainer, MIT license, and the live MCP tools', () => {
     const glama = readJson('glama.json');
     expect(glama.maintainers).toEqual(['avivgerz-hue']);
     expect(glama.license).toBe('MIT');
@@ -38,35 +38,49 @@ describe('MCP registry manifests (smithery / glama / official registry)', () => 
     expect(tools.map((t) => t.name)).toEqual(MCP_TOOLS.map((t) => t.name));
   });
 
-  it('server.json follows the official registry shape and stays version-synced', () => {
+  it('server.json passes the OFFICIAL MCP Registry schema shape (mcp-publisher validate)', () => {
     const server = readJson('server.json');
-    expect(server.$schema).toContain('modelcontextprotocol.io');
-    expect(server.name).toBe('io.github.avivgerz-hue/ghost-qa');
-    expect(server.version).toBe(GHOST_QA_VERSION);
-
     const pkgJson = readJson('package.json');
+
+    // npm ownership verification: package.json mcpName must exactly match server.json name.
+    expect(pkgJson.mcpName).toBe('io.github.avivgerz-hue/ghost-qa');
+    expect(server.name).toBe(pkgJson.mcpName);
+    expect(server.$schema).toContain('modelcontextprotocol.io');
+
+    // Official schema: description strictly 1..100 chars.
+    const description = server.description as string;
+    expect(description.length).toBeGreaterThanOrEqual(1);
+    expect(description.length).toBeLessThanOrEqual(100);
+
+    // Zero non-schema top-level fields (the official schema allows only these keys;
+    // a `tools` array here is what made the old file fail server.schema.json).
+    const allowed = ['$schema', '_meta', 'description', 'icons', 'name', 'packages', 'remotes', 'repository', 'title', 'version', 'websiteUrl'];
+    for (const key of Object.keys(server)) {
+      expect(allowed, `non-schema field: ${key}`).toContain(key);
+    }
+    expect(server).not.toHaveProperty('tools');
+
+    // Version sync: server.json + packages[0] + package.json all equal the live version.
+    expect(server.version).toBe(GHOST_QA_VERSION);
     expect(pkgJson.version).toBe(GHOST_QA_VERSION);
 
-    const packages = server.packages as Array<{ registryType: string; identifier: string; transport: { type: string }; packageArguments: Array<{ value: string }> }>;
-    expect(packages[0]).toMatchObject({ registryType: 'npm', identifier: 'ghost-qa', transport: { type: 'stdio' } });
-    // ghost-qa is published on npm: the runnable spec is the npm package itself.
-    expect(packages[0]?.packageArguments[0]?.value).toBe('ghost-qa');
-
-    const tools = server.tools as ManifestTool[];
-    expect(tools.map((t) => t.name)).toEqual(['ghost_qa_audit_url', 'ghost_qa_compare', 'ghost_qa_doctor']);
-    for (const tool of tools) {
-      expect(tool.description.length).toBeGreaterThan(40);
-      expect(tool.inputSchema.type).toBe('object');
-    }
-    expect(tools[0]?.inputSchema.required).toEqual(['url']);
+    const packages = server.packages as Array<{
+      registryType: string; identifier: string; version: string;
+      transport: { type: string };
+      packageArguments: Array<{ type: string; value: string }>;
+    }>;
+    expect(packages).toHaveLength(1);
+    expect(packages[0]).toMatchObject({ registryType: 'npm', identifier: pkgJson.name, transport: { type: 'stdio' } });
+    expect(packages[0]?.version).toBe(GHOST_QA_VERSION);
+    // Runnable spec: npx -y ghost-qa mcp  (identifier supplies the package name).
+    expect(packages[0]?.packageArguments).toEqual([{ type: 'positional', value: 'mcp' }]);
   });
 
-  it('manifest tool definitions match the live MCP server exactly', () => {
-    const serverTools = (readJson('server.json').tools as ManifestTool[]).map((t) => t.name);
+  it('glama tool definitions match the live MCP server exactly', () => {
     const glamaTools = (readJson('glama.json').tools as ManifestTool[]).map((t) => t.name);
     const liveTools = MCP_TOOLS.map((t) => t.name);
-    expect(serverTools).toEqual(liveTools);
     expect(glamaTools).toEqual(liveTools);
+    expect(liveTools).toEqual(['ghost_qa_audit_url', 'ghost_qa_compare', 'ghost_qa_doctor']);
   });
 
   it('CITATION.cff is CFF 1.2.0, authored by VibeFoundry, version-synced', () => {
