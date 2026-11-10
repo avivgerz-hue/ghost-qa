@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 548" width="920" height="548" role="img" aria-label="Animated ghost-qa terminal demo">
+<title>ghost-qa — live terminal demo: 38/100 F → 100/100 A+</title>
+<desc>Pure-CSS animated terminal recording. ghost-qa audits a local app with its 8-Trap Engine, catches layout, theme, hydration and network bugs, the coding agent fixes them with the SKILL.md playbooks, and the re-run scores 100/100 A+ in 6.4 seconds.</desc>
+<style>
+text{font-family:ui-monospace,'SF Mono',Menlo,Consolas,'Liberation Mono',monospace;font-size:14.5px}
+.ink{fill:#c9d1d9}.mut{fill:#8b949e}.red{fill:#f85149}.grn{fill:#3fb950}
+.blu{fill:#58a6ff}.yel{fill:#e3b341}.org{fill:#e8a15c}.cmd{fill:#e6edf3}.dollar{fill:#3fb950;font-weight:700}
+.barbg{fill:#21262d}.bar{transform-box:fill-box;transform-origin:left center}
+@keyframes stage{0%,94%{opacity:1}97.5%,100%{opacity:0}}
+.stage{animation:stage 16s linear infinite}
+@keyframes caret{1.88%{opacity:1}4.06%{opacity:0}6.25%{opacity:1}8.44%{opacity:0}10.62%{opacity:1}12.81%{opacity:0}15.00%{opacity:1}15.5%,100%{opacity:0}}
+@keyframes type1{0%,2.19%{width:0px}14.37%,100%{width:462px}}
+@keyframes type2{0%,65.94%{width:0px}70.62%,100%{width:500px}}
+@keyframes bar1{0%,44.06%{transform:scaleX(0)}47.50%,100%{transform:scaleX(0.38)}}
+@keyframes bar2{0%,75.94%{transform:scaleX(0)}79.69%,100%{transform:scaleX(1.0)}}
+@keyframes a0{0%,15.62%{opacity:0}17.00%,100%{opacity:1}}
+.a0{animation:a0 16s linear infinite}
+@keyframes a1{0%,19.06%{opacity:0}20.44%,100%{opacity:1}}
+.a1{animation:a1 16s linear infinite}
+@keyframes a2{0%,23.75%{opacity:0}25.12%,100%{opacity:1}}
+.a2{animation:a2 16s linear infinite}
+@keyframes a3{0%,27.50%{opacity:0}28.88%,100%{opacity:1}}
+.a3{animation:a3 16s linear infinite}
+@keyframes a4{0%,31.25%{opacity:0}32.62%,100%{opacity:1}}
+.a4{animation:a4 16s linear infinite}
+@keyframes a5{0%,35.00%{opacity:0}36.37%,100%{opacity:1}}
+.a5{animation:a5 16s linear infinite}
+@keyframes a6{0%,38.75%{opacity:0}40.12%,100%{opacity:1}}
+.a6{animation:a6 16s linear infinite}
+@keyframes a7{0%,43.12%{opacity:0}44.50%,100%{opacity:1}}
+.a7{animation:a7 16s linear infinite}
+@keyframes a8{0%,48.75%{opacity:0}50.12%,100%{opacity:1}}
+.a8{animation:a8 16s linear infinite}
+@keyframes a9{0%,53.12%{opacity:0}54.50%,100%{opacity:1}}
+.a9{animation:a9 16s linear infinite}
+@keyframes a10{0%,56.88%{opacity:0}58.25%,100%{opacity:1}}
+.a10{animation:a10 16s linear infinite}
+@keyframes a11{0%,60.62%{opacity:0}62.00%,100%{opacity:1}}
+.a11{animation:a11 16s linear infinite}
+@keyframes a12{0%,70.94%{opacity:0}72.31%,100%{opacity:1}}
+.a12{animation:a12 16s linear infinite}
+@keyframes a13{0%,75.00%{opacity:0}76.38%,100%{opacity:1}}
+.a13{animation:a13 16s linear infinite}
+@keyframes a14{0%,80.00%{opacity:0}81.38%,100%{opacity:1}}
+.a14{animation:a14 16s linear infinite}
+@keyframes a15{0%,84.06%{opacity:0}85.44%,100%{opacity:1}}
+.a15{animation:a15 16s linear infinite}
+.type1{animation:type1 16s steps(46,end) infinite}
+.type2{animation:type2 16s steps(48,end) infinite}
+.caret{animation:caret 16s linear infinite}
+.bar1{animation:bar1 16s ease-out infinite}
+.bar2{animation:bar2 16s ease-out infinite}
+.s1{animation:a7 16s linear infinite}
+.s2{animation:a13 16s linear infinite}
+</style>
+<rect x="1" y="1" width="918" height="546" rx="12" fill="#0d1117" stroke="#30363d" stroke-width="2"/>
+<rect x="1" y="1" width="918" height="38" rx="12" fill="#161b22"/>
+<rect x="1" y="26" width="918" height="13" fill="#161b22"/>
+<circle cx="26" cy="20" r="6" fill="#f85149"/><circle cx="48" cy="20" r="6" fill="#e3b341"/><circle cx="70" cy="20" r="6" fill="#3fb950"/>
+<text x="460" y="25" text-anchor="middle" font-size="13" fill="#8b949e">ghost-qa — autonomous browser QA</text>
+<g class="stage">
+<defs>
+<clipPath id="clip1"><rect class="type1" x="40" y="52" width="0" height="22"/></clipPath>
+<clipPath id="clip2"><rect class="type2" x="40" y="394" width="0" height="22"/></clipPath>
+</defs>
+<text x="24" y="68"><tspan class="dollar">$</tspan></text>
+<g clip-path="url(#clip1)"><text class="cmd" x="42" y="68" xml:space="preserve">npx -y ghost-qa@latest test http://localhost:3000</text></g>
+<text class="caret" x="474" y="68" fill="#3fb950">▌</text>
+<text class="a0" x="24" y="92" xml:space="preserve"><tspan class="ink">👻 ghost-qa 2.1.0 — 8-Trap Engine · 3 viewports × light/dark · 12 routes</tspan></text>
+<text class="a1" x="24" y="118" xml:space="preserve"><tspan class="mut">Crawling routes · tapping 43 controls · watching console + network…</tspan></text>
+<text class="a2" x="24" y="144" xml:space="preserve"><tspan class="red">✗ </tspan><tspan class="org">[layout · mobile 375×812] horizontal-overflow — div.hero &gt; img.banner (512 &gt; 375)</tspan></text>
+<text class="a3" x="24" y="170" xml:space="preserve"><tspan class="red">✗ </tspan><tspan class="org">[layout · mobile 375×812] small-touch-target — button.cta is 82×32px, needs 44×44</tspan></text>
+<text class="a4" x="24" y="196" xml:space="preserve"><tspan class="red">✗ </tspan><tspan class="org">[theme · dark] theme-contrast — p.muted on #121212 is 1.8:1, needs 4.5:1</tspan></text>
+<text class="a5" x="24" y="222" xml:space="preserve"><tspan class="red">✗ </tspan><tspan class="org">[console] hydration-mismatch — &lt;div&gt; inside &lt;p&gt; (React #418)</tspan></text>
+<text class="a6" x="24" y="248" xml:space="preserve"><tspan class="red">✗ </tspan><tspan class="org">[network] http-error — GET /api/products → 500 Internal Server Error</tspan></text>
+<text class="a7" x="24" y="276" xml:space="preserve"><tspan class="mut">QA Health Score  </tspan><tspan class="red">38/100  F</tspan></text>
+<text class="a8" x="24" y="304" xml:space="preserve"><tspan class="blu">→ Self-Healing Bug Report handed to your coding agent — applying SKILL.md playbooks…</tspan></text>
+<text class="a9" x="24" y="330" xml:space="preserve"><tspan class="grn">✓ </tspan><tspan class="ink">Playbook A · min-w-0 + max-w-full → horizontal overflow gone</tspan></text>
+<text class="a10" x="24" y="356" xml:space="preserve"><tspan class="grn">✓ </tspan><tspan class="ink">Playbook C · min-h-11 min-w-11 md:min-h-9 → every target ≥ 44×44px</tspan></text>
+<text class="a11" x="24" y="382" xml:space="preserve"><tspan class="grn">✓ </tspan><tspan class="ink">Playbooks D+E · dark: theme tokens + deterministic render → parity</tspan></text>
+<text class="a12" x="24" y="436" xml:space="preserve"><tspan class="grn">✓ all 8 traps silent — console · network · layout · a11y · perf · links · seo · theme</tspan></text>
+<text class="a13" x="24" y="464" xml:space="preserve"><tspan class="mut">QA Health Score  </tspan><tspan class="grn">100/100  A+</tspan></text>
+<text class="a14" x="24" y="492" xml:space="preserve"><tspan class="yel">★ Caught a bug before deploy? Star Ghost-QA → github.com/avivgerz-hue/ghost-qa</tspan></text>
+<text class="a15" x="24" y="520" xml:space="preserve"><tspan class="grn">PASS ✔  done in 6.4s</tspan></text>
+<rect class="barbg s1" x="596" y="264" width="288" height="12" rx="6"/>
+<rect class="bar bar1" x="596" y="264" width="288" height="12" rx="6" fill="#f85149"/>
+<text x="24" y="410"><tspan class="dollar">$</tspan></text>
+<g clip-path="url(#clip2)"><text class="cmd" x="42" y="410" xml:space="preserve">npx -y ghost-qa@latest test http://localhost:3000</text></g>
+<rect class="barbg s2" x="596" y="452" width="288" height="12" rx="6"/>
+<rect class="bar bar2" x="596" y="452" width="288" height="12" rx="6" fill="#3fb950"/>
+</g>
+</svg>

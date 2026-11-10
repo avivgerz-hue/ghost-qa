@@ -1,6 +1,6 @@
 # 👻 ghost-qa
 
-**Autonomous headless browser QA & self-healing verification loop for coding agents.** `v2.0.0` — the 8-Trap Deep Browser Inspection Engine: 3 viewports × light/dark, QA Health Score (A+…F), interactive HTML dashboard, and regression diffing.
+**Autonomous headless browser QA & self-healing verification loop for coding agents.** `v2.1.0` — the 8-Trap Deep Browser Inspection Engine: 3 viewports × light/dark, QA Health Score (A+…F), interactive HTML dashboard, and regression diffing.
 
 [![CI](https://github.com/avivgerz-hue/ghost-qa/actions/workflows/ci.yml/badge.svg)](https://github.com/avivgerz-hue/ghost-qa/actions/workflows/ci.yml)
 [![npm version](https://img.shields.io/npm/v/ghost-qa.svg)](https://www.npmjs.com/package/ghost-qa)
@@ -8,6 +8,22 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 [![Node >= 20](https://img.shields.io/badge/node-%3E%3D20-brightgreen.svg)](https://nodejs.org)
 [![Powered by Playwright](https://img.shields.io/badge/powered%20by-Playwright-45ba4b.svg)](https://playwright.dev)
+
+> ⭐ **If this tool helps your AI coding workflow, please give this repository a Star!** It helps more developers discover the project.
+
+### 🧰 The VibeFoundry Agent Suite
+
+*One command each — star all three and keep the whole suite free & maintained:*
+
+- 🎨 **[unslop](https://github.com/avivgerz-hue/unslop)** — UI Design DNA & Anti-Slop Engine (`npx -y unslop-mcp@latest init`)
+- 🛡️ **[vibe-shield](https://github.com/avivgerz-hue/vibe-shield)** — Security Scanner for AI Code (`npx -y @vibefoundry/vibe-shield@latest scan .`)
+- 👻 **[ghost-qa](https://github.com/avivgerz-hue/ghost-qa)** — Autonomous Headless Browser QA (`npx -y ghost-qa@latest test http://localhost:3000`)
+
+![Live Terminal Demo](assets/demo.svg)
+
+```bash
+npx -y ghost-qa@latest test http://localhost:3000
+```
 
 ![ghost-qa terminal preview](./assets/hero-terminal.svg)
 

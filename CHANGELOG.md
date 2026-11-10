@@ -4,6 +4,9 @@ All notable changes to ghost-qa are documented here. Format follows [Keep a Chan
 
 ## [Unreleased]
 
+### Added
+- **README "5-Second Rule" conversion top**: Star CTA callout directly under the badges, a compact **VibeFoundry Agent Suite** nav bar cross-linking unslop, vibe-shield and ghost-qa (so visitors can star all three), and `assets/demo.svg` — a self-contained, pure-CSS `@keyframes` animated terminal recording (types the real command, catches layout/theme/hydration/network bugs at 38/100 F, applies the SKILL.md playbooks, re-scores 100/100 A+, done in 6.4s) embedded above the fold with a 1-line copy-paste quickstart. Guard-tested in `tests/readme-top.test.ts`; no scripts or external assets.
+
 ### Removed
 - `docs/index.html` GitHub Pages demo and the root `action.yml` (its mere presence made GitHub render a "Use this GitHub action with your project" banner on the repo homepage). README links and guard tests referencing them were removed; the v2.1.0 Star CTA and all 8 agent integrations are unchanged.
 
