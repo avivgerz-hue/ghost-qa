@@ -1,0 +1,33 @@
+{
+  "name": "ghost-qa",
+  "version": "2.1.1",
+  "description": "Autonomous headless browser QA and self-healing verification loop for coding agents, with 8-trap Playwright inspection across desktop, tablet and mobile in light and dark.",
+  "author": {
+    "name": "VibeFoundry",
+    "url": "https://github.com/avivgerz-hue"
+  },
+  "homepage": "https://github.com/avivgerz-hue/ghost-qa#readme",
+  "repository": "https://github.com/avivgerz-hue/ghost-qa",
+  "license": "MIT",
+  "keywords": [
+    "qa",
+    "playwright",
+    "accessibility",
+    "testing",
+    "web-vitals",
+    "seo",
+    "agent-skills"
+  ],
+  "interface": {
+    "displayName": "ghost-qa",
+    "shortDescription": "Headless browser QA loop for coding agents",
+    "developerName": "VibeFoundry",
+    "category": "Coding",
+    "websiteURL": "https://github.com/avivgerz-hue/ghost-qa",
+    "longDescription": "Runs an 8-trap deep browser inspection (console, network, layout, WCAG accessibility and keyboard focus, Core Web Vitals, links, SEO, theme parity) across three viewports in light and dark, then reports a QA Health Score from A+ to F.",
+    "capabilities": [
+      "Interactive",
+      "Read"
+    ]
+  }
+}
