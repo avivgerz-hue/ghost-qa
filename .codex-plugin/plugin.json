@@ -1,6 +1,6 @@
 {
   "name": "ghost-qa",
-  "version": "2.1.1",
+  "version": "2.1.2",
   "description": "Autonomous headless browser QA and self-healing verification loop for coding agents, with 8-trap Playwright inspection across desktop, tablet and mobile in light and dark.",
   "author": {
     "name": "VibeFoundry",
